@@ -21,5 +21,5 @@ This framework is built upon a decade-long intellectual moat, beginning with the
 | **08: Phylogenetic Audit** | Bias Detection | [ABHOI Breakthrough #2] |
 
 ## Contact & Institutional Inquiries
-**Principal:** Neka Everett (EIIG)  
+**Principal:** Neka Everett, Evolutionary Intelligence & IP Governance (EIIG)  
 **Domain:** [NEnterpriseAI.com](https://NEnterpriseAI.com)
