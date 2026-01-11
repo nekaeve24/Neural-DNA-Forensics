@@ -9,7 +9,7 @@ This framework is built upon a decade-long intellectual moat, beginning with the
 * **Thesis Foundation:** *Genetics and the Consumer: An Evaluation of the Direct-to-Consumer Genetics Industry in Society (2015)*.
 
 ## Technical Audit Suite (The 8 Models)
-| Model | Focus | Biological/Neural Basis |
+| Module | Focus | Biological/Neural Basis |
 | :--- | :--- | :--- |
 | **01: Integrity Gate** | Forensic Logic | [MOTM Ch 2: M-P Logic] |
 | **02: Forensic Chain** | Accountability | [MOTM Ch 3: Backprop] |
