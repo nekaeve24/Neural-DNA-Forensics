@@ -1,47 +1,38 @@
 /**
- * @file integrity_gate.hpp
- * @author Neka Everett
- * @brief Audit 01: Integrity Gate for High-Frequency Forensics.
- * * This architecture implements a homeostatic neuron basedon Welford's Algorithmm. It establishes a Sovereign Baseline to detect systemic entropy.
+ * @file main.cpp
+ * @brief Test Bench for the Integrity Gate Sovereign Baseline.
  */
 
-#ifndef INTEGRITY_GATE_HPP
-#define INTEGRITY_GATE_HPP
+#include <iostream>
+#include <vector>
+#include <iomanip> // For professional currency formatting
+#include "integrity_gate.hpp"
 
-/**
- * @class IntegrityGate
- * @brief A forensic auditory that maintains a real-time sovereign baseline.
- */
-class IntegrityGate{
-    private:
-        long n; //< Experience Counter: Total signals audited.
-        double mu; //< Sovereign Baseline The internal mean price/value.
-        double m2; //< Entropy Engine: Accumulated sum of squares (M2).
+int main() {
+    // 1. Initialize the Gate
+    IntegrityGate gate;
 
-    public:
-        /**
-         * @brief Consttuctor: Iniaializes the neuro to a zero-state.
-         */
-        IntegrityGate() : n(0), mu(0.0), m2(0.0) {}
+    // 2. Define the Market Data Stream (Asset prices in dollars)
+    std::vector<double> data_signals = {10.2, 12.3, 11.5, 13.1, 9.9};
 
-        /**
-         * @brief The Audit Method: Interrogates an incoming signal 'x'.
-         * @param x The raw signal value to be audited against the baseline.
-         */
-        void audit_signal(double x);
+    // 3. Iterative Integration
+    for (double s : data_signals) {
+        gate.audit_signal(s);
+    }
 
-        /**
-         * @brief Report Integrity: Evaluations the Baseline Paradox and returns results.
-         * @param[out] variance The calculated Entropy Score (Risk).
-         * @param[out] std_dev The calculated Volatility (Standard Deviation).
-         */
-        void report_integrity(double &variance, double &std_dev);
+    // 4. Extract Results
+    double entropy, volatility;
+    gate.report_integrity(entropy, volatility);
 
-        /** @name Forensic Vieweers */
-        ///@{
-        double get_baseline() const { return mu; }
-        long get_experience() const { return n; }
-        ///@}
-};
+    // 5. Forensic Output: Institutional Formatting
+    std::cout << std::fixed << std::setprecision(2);
+    std::cout << "Audit Complete. Sovereign Baseline: $" << gate.get_baseline() << std::endl;
+    
+    std::cout << std::setprecision(4);
+    std::cout << "Variance (Entropy Score): " << entropy << std::endl;
+    
+    std::cout << std::setprecision(2);
+    std::cout << "Standard Deviation (Volatility): $" << volatility << std::endl;
 
-#endif // INTEGRITY_GATE_HPP
+    return 0;
+}
