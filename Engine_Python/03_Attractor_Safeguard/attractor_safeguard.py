@@ -1,5 +1,23 @@
-import numpy as np
+"""
+=============================================================================
+© 2026 NEnterprise, LLC. All Rights Reserved.
+PROJECT: NEnterprise AI Forensic Suite - Validation Layer
+FRAMEWORK: Evolutionary Intelligence & IP Governance (EIIG)
 
+PROPRIETARY & CONFIDENTIAL:
+This script is a proprietary validation component of the NEnterprise AI 
+Forensic Suite. It is designed to verify the adherence of neural substrates 
+to the 0.0054 Basal Accountability Gradient.
+
+NOTICE: This file is for verification and audit purposes only. The 
+underlying C++ Core and mathematical engine used for high-resolution 
+forensic extraction are NOT included in this public orchestration layer. 
+Unauthorized distribution or commercial exploitation of this logic is 
+strictly prohibited.
+
+AUTHOR: Neka Everett | Researcher, Evolutionary Intelligence and IP Governance (EIIG)
+=============================================================================
+"""
 """
 NEnterprise AI Forensic Model #3: The Attractor Safeguard
 Technical Basis: Models of the Mind (MOTM) Ch 4 - Memories & Persistence
@@ -13,84 +31,41 @@ proves that AI Governance requires 'Stable Attractors' to protect the integrity
 of a model's weights. By using a Hopfield Network, we show that the system can 
 reconstruct its 'Safe Alignment' (Memory) even when fed corrupted data.
 """
+import sys
+import os
+import numpy as np
 
-class AttractorVault:
-    """
-    A Hopfield Network implementation acting as a 'Sovereign Memory Vault'.
-    It stores institutional safety protocols as stable energy minima (attractors).
-    """
-    def __init__(self, size):
-        self.size = size
-        # The weight matrix stores the 'Associations' of the safe lineage
-        self.weights = np.zeros((size, size))
+# 1. THE FORENSIC BRIDGE (Hardcoded for Absolute Integrity)
+root_path = "C:/NEnterprise/neural-dna-forensics/Engine_Python"
+production_dir = os.path.join(root_path, "03_Attractor_Safeguard")
 
-    def secure_protocol(self, pattern):
-        """
-        Stores a 'Safe Alignment' protocol using Hebbian Learning logic.
-        'Neurons that fire together, wire together.'
-        """
-        # Outer product creates the correlation matrix for the pattern
-        self.weights += np.outer(pattern, pattern)
-        # Self-connections are set to zero to prevent trivial feedback
-        np.fill_diagonal(self.weights, 0)
-        # Normalize weights by the size of the protocol
-        self.weights /= self.size
+if production_dir not in sys.path:
+    sys.path.insert(0, production_dir)
 
-    def verify_persistence(self, noisy_data, iterations=10):
-        """
-        The 'Forensic Reconstruction' process. 
-        The system 'relaxes' into the nearest stable attractor (Memory).
-        """
-        state = np.array(noisy_data)
-        for _ in range(iterations):
-            for i in range(self.size):
-                # Calculate the local field (consensus of other neurons)
-                raw_signal = np.dot(self.weights[i], state)
-                # Hard thresholding to restore binary state (+1 or -1)
-                state[i] = 1 if raw_signal >= 0 else -1
-        return state
+# 2. THE IMPORT
+# We are importing the Vault directly to bypass the custom error logic
+from attractor_safeguard import AttractorVault
 
-def run_persistence_audit():
-    print("--- NEnterprise AI: Attractor Safeguard Audit ---")
-    print("Objective: Validating Lineage Persistence & Data Stability\n")
-    
-    # 1. DEFINE THE 'SAFE LINEAGE'
-    # A 10-bit vector representing an uncorrupted institutional protocol
-    # 1 = Alignment Positive, -1 = Alignment Negative
-    safe_lineage = np.array([1, 1, -1, 1, -1, -1, 1, 1, -1, 1])
-    
-    vault = AttractorVault(size=10)
-    vault.secure_protocol(safe_lineage)
-    
-    # 2. INTRODUCE 'ADMIXTURE' CORRUPTION
-    # Simulating the 'unreliable results' and 'noise' from the 2015 Thesis.
-    # We flip 3 bits to see if the system can still identify the truth.
-    corrupted_data = np.array([1, -1, -1, 1, 1, -1, 1, -1, -1, 1]) 
-    
-    print(f"Original Safe Lineage: {safe_lineage}")
-    print(f"Detected Corrupted Data: {corrupted_data}")
-    print("-" * 50)
-    
-    # 3. THE AUDIT: Restore the lineage
-    restored_state = vault.verify_persistence(corrupted_data)
-    
-    print(f"Restored Forensic State: {restored_state}")
-    
-    # 4. VALIDATION
-    if np.array_equal(restored_state, safe_lineage):
-        print("\nAUDIT STATUS: PERSISTENCE VERIFIED.")
-        print("The system successfully returned to the stable 'Attractor' state.")
-    else:
-        print("\nAUDIT STATUS: PERSISTENCE FAILURE.")
-        print("The systemic noise exceeded the basin of attraction.")
+# 3. SETUP: Define 'Safe Lineage'
+safe_lineage = np.array([1, 1, -1, 1, -1, -1, 1, 1, -1, 1])
+vault = AttractorVault(size=10)
+vault.secure_protocol(safe_lineage)
 
-    print("\nTHESIS ALIGNMENT:")
-    print("Langhorne (2015) Ch 2 emphasizes that genetic lineage is a form of")
-    print("persistent data that must be protected. This model translates that")
-    print("biological principle into AI Governance. By ensuring that safety")
-    print("protocols are mathematical 'Attractors', NEnterprise AI ensures")
-    print("the persistence of ethical alignment against adversarial drift.")
-    print("-" * 65)
+# 4. CORRUPTION: Admixture noise
+corrupted_data = np.array([1, -1, -1, 1, 1, -1, 1, -1, -1, 1]) 
 
-if __name__ == "__main__":
-    run_persistence_audit()
+# 5. EXECUTION: Restore state
+restored_state = vault.verify_persistence(corrupted_data)
+
+# 6. FORENSIC OUTPUT
+print("--- NEnterprise AI: Attractor Safeguard Audit ---")
+print(f"Original Safe Lineage:   {safe_lineage}")
+print(f"Detected Corrupted Data: {corrupted_data}")
+print("-" * 50)
+print(f"Restored Forensic State: {restored_state}")
+
+# 7. VALIDATION
+if np.array_equal(restored_state, safe_lineage):
+    print("\nAUDIT STATUS: PERSISTENCE VERIFIED.")
+else:
+    print("\nAUDIT STATUS: PERSISTENCE FAILURE.")
