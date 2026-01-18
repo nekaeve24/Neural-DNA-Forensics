@@ -78,5 +78,5 @@ The NEnterprise AI Forensic Suite utilizes a dual-layer architecture to maximize
 
 The logical thresholds, specifically the **0.0054 Basal Accountability Gradient**, are the intellectual property of NEnterprise, LLC. This public repository serves as a portfolio of the architectural logic. Reverse engineering of the underlying C++ substrates is strictly prohibited.
 
-**Contact:** [neka.everett@gmail.com](mailto:neka.everett@gmail.com)  
+**Contact:** [LinkedIn](https://www.linkedin.com/in/neka-e-a3443368/)  
 **Portfolio:** [NEnterpriseAI.com](https://NEnterpriseAI.com)
