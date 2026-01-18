@@ -18,7 +18,7 @@ strictly prohibited.
 AUTHOR: Neka Everett | Researcher, Evolutionary Intelligence and IP Governance (EIIG)
 =============================================================================
 """
-    """
+"""
     NEnterprise AI Forensic Model #3: The Attractor Safeguard
     Technical Basis: Models of the Mind (MOTM) Ch 4 - Memories & Persistence
     Thesis Reference: Langhorne (2015) Ch 2 - "Genetic Stability & Lineage Persistence"
@@ -29,7 +29,7 @@ AUTHOR: Neka Everett | Researcher, Evolutionary Intelligence and IP Governance (
     It stores institutional safety protocols as stable energy minima (attractors). 
     Even when the system is exposed to corrupted or adversarial data, it utilizes 
     recurrent dynamics to 'relax' back into its uncorrupted, safe state.
-    """
+"""
 
 import numpy as np
 
