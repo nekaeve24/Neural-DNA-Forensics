@@ -1,4 +1,23 @@
-import numpy as np
+"""
+=============================================================================
+© 2026 NEnterprise, LLC. All Rights Reserved.
+PROJECT: NEnterprise AI Forensic Suite - Validation Layer
+FRAMEWORK: Evolutionary Intelligence & IP Governance (EIIG)
+
+PROPRIETARY & CONFIDENTIAL:
+This script is a proprietary validation component of the NEnterprise AI 
+Forensic Suite. It is designed to verify the adherence of neural substrates 
+to the 0.0054 Basal Accountability Gradient.
+
+NOTICE: This file is for verification and audit purposes only. The 
+underlying C++ Core and mathematical engine used for high-resolution 
+forensic extraction are NOT included in this public orchestration layer. 
+Unauthorized distribution or commercial exploitation of this logic is 
+strictly prohibited.
+
+AUTHOR: Neka Everett | Researcher, Evolutionary Intelligence and IP Governance (EIIP)
+=============================================================================
+"""
 
 """
 NEnterprise AI Forensic Model #2: The Forensic Chain
@@ -13,6 +32,9 @@ Partial Derivative (Backpropagation Gradient) to identify the specific
 'Basal Weight' responsible for a systemic error, establishing the 
 '0.0054' NEnterprise accountability baseline.
 """
+import numpy as np
+import os
+import sys
 
 def sigmoid(x):
     """Activation function representing the signal threshold."""
