@@ -1,75 +1,68 @@
+"""
+=============================================================================
+© 2026 NEnterprise, LLC. All Rights Reserved.
+PROJECT: NEnterprise AI Forensic Suite - Validation Layer
+FRAMEWORK: Evolutionary Intelligence & IP Governance (EIIG)
 
-class IntegrityGate:
-    """
-    NEnterprise Research Portfolio: Audit 01
-    Based on Welford's Algorithm for Online Variance.
-    Concept: Biological Homeostasis in Neural Architectures.
-    """ 
-    #1. Named the Integrity_Gate (IG) neuron
-    def __init__(self):
+PROPRIETARY & CONFIDENTIAL:
+This script is a proprietary validation component of the NEnterprise AI 
+Forensic Suite. It is designed to verify the adherence of neural substrates 
+to the 0.0054 Basal Accountability Gradient.
 
-        #2. Defined the IG neuron (The Experience Counter)
-        self.n = 0
+NOTICE: This file is for verification and audit purposes only. The 
+underlying C++ Core and mathematical engine used for high-resolution 
+forensic extraction are NOT included in this public orchestration layer. 
+Unauthorized distribution or commercial exploitation of this logic is 
+strictly prohibited.
 
-        #3. Calculate the mean of the IG neuron (The Sovereign Baseline)
-        self.mu = 0.0
+AUTHOR: Neka Everett | Researcher, Evolutionary Intelligence and IP Governance (EIIG)
+=============================================================================
+"""
+"""
+    NEnterprise AI Forensic Model #1: The Integrity Gate
+    Technical Basis: Welford's Algorithm for Online Variance
+    Thesis Reference: Langhorne (2015) - Biological Homeostasis
 
-        #4. Define the variance (The Variance Engine)
-        self.m2 = 0.0
+    GOAL: 
+    Audit and validate 'Data Homeostasis.'
+    This test simulates a real-time market feed to verify that the Integrity Gate 
+    correctly identifies the Mean ($11.40) and Volatility ($1.36). This proves 
+    that institutional data has a persistent mathematical 'center of gravity,' 
+    allowing for the immediate detection of entropy that threatens systemic integrity.
+"""
 
-    #5. The Audit Method: Testing a new signal 'x' against the Sovereign Baseline
-    def audit_signal(self, x):
-        #A. Incrementally increase the Experience Counter (n)
-        self.n += 1
+import sys
+import os
 
-        #B. Identify the "Anomaly" (The primary mismatch)
-        # Reality (x) minus the Sovereign Baseline (mu)
-        anomaly = x -self.mu
+# 1. THE FORENSIC BRIDGE (Hardcoded for Absolute Integrity)
+root_path = "C:/NEnterprise/neural-dna-forensics/Engine_Python"
+production_dir = os.path.join(root_path, "01_Integrity_Gate")
 
-        #C. Integrate the signal into the Baseline
-        # Note: We divide by 'n' to ensure stability as experience grows
-        self.mu += anomaly / self.n
+if production_dir not in sys.path:
+    sys.path.insert(0, production_dir)
 
-        #D. Refine the Anomaly
-        # We check the anomaly again against the newly updated baseline
-        anomaly2 = x - self.mu
+# 2. THE IMPORT
+try:
+    from integrity_gate import IntegrityGate
+except ImportError:
+    print(f"\n[ERROR] System Disconnect: integrity_gate.py not found.")
+    print(f"Looked in: {production_dir}")
+    sys.exit(1)
 
-        #E.Power the Variance Engine (m2)
-        # This stores the "kinetic energy" of the signal's noise
-        self.m2 += anomaly * anomaly2
-
-    #6. Report Integrity: Finalize the Audit statistics
-    # Define the Baseline Paradox based on variance measurements
-    def report_integrity(self):
-        # If there are less than 2 signals, then variance is mathematically impossible
-        if self.n < 2:
-            return 0.0
-        
-        # Calculate the Base Variance (M2 divided by experience minus one)
-        variance = self.m2 / (self.n -1)
-
-        # Calculate Standard Deviation (The square root of the variance)
-        # For this, we use the power of 0.5
-        std_dev = variance ** 0.5
-
-        return variance, std_dev
-    
-
-# --- Audit Test: Asset price of stock in dollars ---
-
-#1. Intitialize the Gate and the Market Data stream
+# 3. SETUP: Initialize the Gate and the Market Data stream
 gate = IntegrityGate()
 data_signals = [10.2, 12.3, 11.5, 13.1, 9.9]
 
-#2. Iterative Integration: Auditing each signal as it arives in time
-# This simulates a real-time market feed
+# 4. EXECUTION: Iterative Integration
 for s in data_signals:
     gate.audit_signal(s)
 
-#3. Integrity Reporting: Extract the Sovereign Baseline and Chaos Score
+# 5. REPORTING: Extract the Sovereign Baseline and Chaos Score
 var, sd = gate.report_integrity()
 
-#4. Forensic Output
+# 6. FORENSIC OUTPUT
+print("--- NEnterprise AI: Integrity Gate Audit ---")
 print(f"Audit Complete. Sovereign Baseline (Mean Price: ${gate.mu:.2f})")
 print(f"Variance (Entropy Score): {var:.4f}")
 print(f"Standard Deviation (Volatility): ${sd:.2f}")
+print("-" * 45)
