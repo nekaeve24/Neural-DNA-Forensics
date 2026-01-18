@@ -53,8 +53,6 @@ This repository contains the Python-based **Observation & Orchestration Layer**.
 - **Basis:** Cladistics and Forensic Neural Archaeology.
 - **Function:** Traces the 'genetic' history of model weights to identify the origin of specific knowledge sets.
 
-
-
 ### 10. Model Synthesis
 - **Basis:** Cross-Domain Data Fusion.
 - **Function:** Consolidates validated forensic nodes into comprehensive institutional reports.
@@ -72,6 +70,8 @@ The NEnterprise AI Forensic Suite utilizes a dual-layer architecture to maximize
 * **C++ Neural DNA Core (Proprietary):** The high-performance mathematical engine responsible for raw substrate extraction remains offline. This core is available only via enterprise licensing.
 
 © 2026 NEnterprise, LLC. All Rights Reserved.
+
+---
 
 ## ⚖️ Proprietary Notice & IP Governance
 © 2026 NEnterprise, LLC. All Rights Reserved.
