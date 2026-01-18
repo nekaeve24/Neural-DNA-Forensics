@@ -1,25 +1,74 @@
-# NEnterprise AI: Forensic Auditing & IP Management
-> **Sovereign Intelligence Governance for the 2026 Regulatory Landscape.**
+# NEnterprise AI Forensic Suite: Neural DNA Substrate
+### Framework: Evolutionary Intelligence & IP Governance (EIIG)
 
-## Executive Summary
-NEnterprise AI provides institutional-grade forensic audits for neural architectures. Our proprietary methodology treats neural weights as "Neural DNA," applying evolutionary biology principles to ensure AI safety, IP defensibility, and regulatory compliance.
+**Author:** Neka Everett  
+**Academic Basis:** MS Applied Mathematics, Columbia University  
+**Thesis Reference:** Langhorne (2015) - *The Basal Accountability Gradient*
 
-## The Lineage of Intelligence
-This framework is built upon a decade-long intellectual moat, beginning with the Principal's 2015 research at Columbia University:
-* **Thesis Foundation:** *Genetics and the Consumer: An Evaluation of the Direct-to-Consumer Genetics Industry in Society (2015)*.
+---
 
-## Technical Audit Suite (The 8 Models)
-| Module | Focus | Biological/Neural Basis |
-| :--- | :--- | :--- |
-| **01: Integrity Gate** | Forensic Logic | [MOTM Ch 2: M-P Logic] |
-| **02: Forensic Chain** | Accountability | [MOTM Ch 3: Backprop] |
-| **03: Attractor Safeguard** | Persistence | [MOTM Ch 4: Hopfield Networks] |
-| **04: Homeostatic Governor** | Privacy/Veto | [MOTM Ch 5: E/I Balance] |
-| **05: Steering Lineage** | Objective Alignment | [ABHOI Breakthrough #1] |
-| **06: Population Coder** | Systemic Robustness | [MOTM Ch 7: Neural Coding] |
-| **07: Proprietary Vault** | Data Sovereignty | [MOTM Ch 4: Memory Storage] |
-| **08: Phylogenetic Audit** | Bias Detection | [ABHOI Breakthrough #2] |
+## 🔬 Executive Summary
+The NEnterprise AI Forensic Suite is a specialized diagnostic engine designed for **Mechanistic Interpretability** and **Neural Archaeology**. By utilizing a proprietary **0.0054 Basal Accountability Gradient**, this framework provides a mathematical chain of custody for neural weights, ensuring data sovereignty and bias mitigation in high-stakes institutional AI environments.
 
-## Contact & Institutional Inquiries
-**Principal:** Neka Everett, Evolutionary Intelligence & IP Governance (EIIG)  
-**Domain:** [NEnterpriseAI.com](https://NEnterpriseAI.com)
+
+
+---
+
+## 🏗 The 11-Model Forensic Pipeline
+This repository contains the Python-based **Observation & Orchestration Layer**. The high-performance mathematical core remains proprietary (C++).
+
+### 01. Integrity Gate
+- **Basis:** Welford's Algorithm for Online Variance.
+- **Function:** Establishes biological 'Homeostatic Baselines' to prevent systemic shock from volatile data inputs.
+
+### 02. Forensic Chain
+- **Basis:** Mathematical Chain of Custody.
+- **Function:** Links every evolutionary step of the neural substrate into an immutable cryptographic sequence.
+
+### 03. Attractor Safeguard
+- **Basis:** Dynamical Systems Stability.
+- **Function:** Identifies and secures 'Fixed-Point' attractors to prevent dead-end logic loops.
+
+### 04. Homeostatic Governor
+- **Basis:** Negative Feedback Loops.
+- **Function:** Regulatory layer that dampens extreme outputs to maintain systemic equilibrium.
+
+### 05. Steering Lineage
+- **Basis:** Directed Acyclic Graph (DAG) Traversal.
+- **Function:** Ensures model learning trajectory remains aligned with the NEnterprise Root Baseline.
+
+### 06. Population Coder
+- **Basis:** Distributed Neural Representation.
+- **Function:** Analyzes weight distribution across the neural population to prevent single-point bias.
+
+### 07. Error Correction
+- **Basis:** Hebbian Learning Refinement.
+- **Function:** Real-time rectification of logic drift using the 0.0054 gradient.
+
+### 08. Proprietary Vault
+- **Basis:** Data Sovereignty Protocols.
+- **Function:** Isolation and encryption of critical forensic signatures.
+
+### 09. Phylogenetic Audit
+- **Basis:** Cladistics and Forensic Neural Archaeology.
+- **Function:** Traces the 'genetic' history of model weights to identify the origin of specific knowledge sets.
+
+
+
+### 10. Model Synthesis
+- **Basis:** Cross-Domain Data Fusion.
+- **Function:** Consolidates validated forensic nodes into comprehensive institutional reports.
+
+### 11. Logic Reconstruction
+- **Basis:** Predictive Forensic Modeling.
+- **Function:** Extrapolates validated past narratives to assess future model reliability.
+
+---
+
+## ⚖️ Proprietary Notice & IP Governance
+© 2026 NEnterprise, LLC. All Rights Reserved.
+
+The logical thresholds, specifically the **0.0054 Basal Accountability Gradient**, are the intellectual property of NEnterprise, LLC. This public repository serves as a portfolio of the architectural logic. Reverse engineering of the underlying C++ substrates is strictly prohibited.
+
+**Contact:** [neka.everett@gmail.com](mailto:neka.everett@gmail.com)  
+**Portfolio:** [NEnterpriseAI.com](https://NEnterpriseAI.com)
