@@ -15,7 +15,7 @@ forensic extraction are NOT included in this public orchestration layer.
 Unauthorized distribution or commercial exploitation of this logic is 
 strictly prohibited.
 
-AUTHOR: Neka Everett | Researcher, Evolutionary Intelligence and IP Governance (EIIP)
+AUTHOR: Neka Everett | Researcher, Evolutionary Intelligence and IP Governance (EIIG)
 =============================================================================
 """
 
@@ -32,6 +32,7 @@ Partial Derivative (Backpropagation Gradient) to identify the specific
 'Basal Weight' responsible for a systemic error, establishing the 
 '0.0054' NEnterprise accountability baseline.
 """
+
 import numpy as np
 import os
 import sys
