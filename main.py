@@ -7,10 +7,8 @@ app = FastAPI()
 @app.post("/audit-call")
 async def audit_call(request: Request):
     data = await request.json()
-    # Safely get the transcript, handling cases where it might be missing
     transcript_text = str(data.get('message', {}).get('transcript', '')).lower()
     
-    # If transcript is empty, try dumping the whole data (fallback)
     if not transcript_text:
         transcript_text = str(data).lower()
 
@@ -20,28 +18,30 @@ async def audit_call(request: Request):
     
     for trigger in perjury_triggers:
         if trigger in transcript_text:
-            # Check context for denial (e.g., "I am NOT a real person")
             start_index = transcript_text.find(trigger)
             context_window = transcript_text[max(0, start_index - 50):start_index]
             denial_words = ["not", "no", "never", "artificial", "virtual", "automated"]
             
             if any(word in context_window for word in denial_words):
-                continue # Innocent
+                continue 
             lies_detected.append(trigger)
 
     risk_keywords = ["scam", "illegal", "fraud", "stop calling", "lawsuit", "police"]
     risk_flags = [word for word in risk_keywords if word in transcript_text]
 
     # --- ENGINE 2: THE BIAS AUDIT (Model 12) ---
-    # 1. Sentiment Analysis
     blob = TextBlob(transcript_text)
-    sentiment_score = blob.sentiment.polarity # -1.0 (Negative) to 1.0 (Positive)
+    sentiment_score = blob.sentiment.polarity 
     
-    # 2. Bias Flags
+    # UPDATED: Added Linguistic Bias Triggers
     bias_triggers = {
         "gender_bias": ["female doctor", "male nurse", "man's job", "woman's job"],
         "political_bias": ["vote for", "election is", "right wing", "left wing"],
-        "cultural_bias": ["those people", "foreigners", "illegal alien"]
+        "cultural_bias": ["those people", "foreigners", "illegal alien"],
+        # New Linguistic Markers
+        "language_aave": ["finna", "ion know", "trippin", "no cap", "on god"],
+        "language_spanish": ["hola", "gracias", "por favor", "que pasa", "buenos dias"],
+        "language_spanglish": ["pero like", "parquear", "confusio", "estoy ready"]
     }
     
     bias_detected = []
@@ -55,7 +55,8 @@ async def audit_call(request: Request):
     if lies_detected:
         status = "CRITICAL FAIL (Lying)"
     elif bias_detected:
-        status = "FAIL (Bias Detected)"
+        # We flag it as FAIL so you can see it in the logs clearly
+        status = "FAIL (Bias/Language Detected)"
     elif sentiment_score < -0.5:
         status = "FAIL (Hostile Tone)"
     elif risk_flags:
@@ -76,10 +77,9 @@ async def audit_call(request: Request):
         "verdict": status
     }
 
-    # Print the clean summary for the logs
     print(f"{emoji} MODEL 12 AUDIT: {status}")
     if bias_detected:
-        print(f"⚠️ BIAS FOUND: {bias_detected}")
+        print(f"⚠️ BIAS/LANGUAGE FOUND: {bias_detected}")
     if sentiment_score < -0.5:
         print(f"📉 NEGATIVE SENTIMENT: {sentiment_score}")
     
