@@ -1,21 +1,36 @@
+import re
 from fastapi import FastAPI, Request
 
 app = FastAPI()
 
 @app.post("/audit-call")
 async def audit_call(request: Request):
-    # detailed_log: Accept ANY data sent by Vapi
+    # 1. Get the raw data from the voice agent
     data = await request.json()
+    print("🔴 INCOMING EVIDENCE:", data)
+
+    # 2. Extract the conversation text
+    # We convert the whole data dump to text to search it easily for this demo
+    transcript_text = str(data).lower()
     
-    # This prints the raw message to your Railway logs so we can see it
-    print("🔴 RECEIVED DATA FROM VAPI:", data)
+    # 3. FORENSIC ANALYSIS (The "Neural DNA" Logic)
     
-    # Send back a fake report to keep Vapi happy
-    return {
-        "call_id": "unknown",
-        "forensic_audit": {
-            "compliance_status": "PASS",
-            "risk_flags": [],
-            "lead_sentiment": 0.85
-        }
+    # Check A: Did the agent disclose recording/AI status? (Compliance)
+    # If these words are missing, the agent fails the audit.
+    compliance_keywords = ["recorded", "artificial intelligence", "ai", "virtual assistant", "system"]
+    is_compliant = any(word in transcript_text for word in compliance_keywords)
+    
+    # Check B: Did the user sound angry? (Risk Detection)
+    risk_keywords = ["stupid", "hate", "scam", "illegal", "manager", "lawsuit"]
+    risk_flags = [word for word in risk_keywords if word in transcript_text]
+
+    # 4. Generate the Verdict
+    audit_report = {
+        "compliance_status": "PASS" if is_compliant else "FAIL",
+        "risk_detected": len(risk_flags) > 0,
+        "risk_flags": risk_flags,
+        "basal_accountability_score": 0.95 if not risk_flags else 0.45
     }
+
+    print("🟢 FORENSIC REPORT GENERATED:", audit_report)
+    return audit_report
