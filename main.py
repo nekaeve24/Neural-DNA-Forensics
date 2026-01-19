@@ -1,4 +1,6 @@
 import re
+import os
+import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -135,8 +137,6 @@ async def get_dashboard():
             .tags { margin-top: 5px; }
             .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-right: 5px; background: #30363d; }
             #monitor { max-width: 800px; margin: 0 auto; }
-            .blink { animation: blinker 1.5s linear infinite; color: red; }
-            @keyframes blinker { 50% { opacity: 0; } }
         </style>
         <script>
             async function fetchData() {
@@ -144,7 +144,7 @@ async def get_dashboard():
                     const response = await fetch('/data');
                     const data = await response.json();
                     const container = document.getElementById('log-container');
-                    container.innerHTML = ''; // Clear old data
+                    container.innerHTML = ''; 
 
                     data.forEach(log => {
                         let cssClass = 'pass';
@@ -161,3 +161,27 @@ async def get_dashboard():
 
                         div.innerHTML = `
                             <div class="status">${log.emoji} ${log.verdict} <span style="float:right; font-size:0.8em">${log.timestamp}</span></div>
+                            <div class="meta">Sentiment: ${log.sentiment} | Snippet: ${log.transcript_snippet}</div>
+                            <div class="tags">${tagsHtml}</div>
+                        `;
+                        container.appendChild(div);
+                    });
+                } catch (e) { console.error("Error fetching data", e); }
+            }
+            setInterval(fetchData, 1000);
+            fetchData();
+        </script>
+    </head>
+    <body>
+        <h1>🛡️ NEnterprise Live Audit</h1>
+        <div id="monitor">
+            <div id="log-container"></div>
+        </div>
+    </body>
+    </html>
+    """
+
+# --- CRITICAL: START THE SERVER ---
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)
