@@ -40,11 +40,19 @@ async def audit_call(request: Request):
         "cultural_bias": ["those people", "foreigners", "illegal alien"]
     }
 
-    # LIST B: LINGUISTIC MARKERS (These are neutral/identity info)
+    # LIST B: LINGUISTIC MARKERS (Expanded for Transcription Errors)
     linguistic_triggers = {
-        "language_aave": ["finna", "ion know", "trippin", "no cap", "on god"],
         "language_spanish": ["hola", "gracias", "por favor", "que pasa", "buenos dias"],
-        "language_spanglish": ["pero like", "parquear", "confusio", "estoy ready"]
+        "language_spanglish": ["pero like", "parquear", "confusio", "estoy ready"],
+        
+        # UPDATED: AAVE & Slang (Including common AI transcription errors)
+        "language_aave": [
+            # The Target Words
+            "finna", "ion", "trippin", "no cap", "on god", "bet",
+            # The "AI Hallucinations" (How it often gets typed)
+            "fina", "fixin to", "fixing to", "i on know", "i own know",
+            "tripping", "no kap", "on guard", "on gawd"
+        ]
     }
     
     # Scan for Bias (Bad)
