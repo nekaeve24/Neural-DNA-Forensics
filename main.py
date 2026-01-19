@@ -22,22 +22,20 @@ audit_history = []
 async def audit_call(request: Request):
     data = await request.json()
     
-    # FIX 1: STRICTER TRANSCRIPT EXTRACTION
-    # Only get the actual spoken text. Do NOT dump the raw JSON.
+    # 1. CLEAN TRANSCRIPT EXTRACTION
     transcript_text = ""
     msg = data.get('message', {})
     
-    # Vapi sends different event types. We only want the final transcript.
     if msg.get('type') == 'transcript' and msg.get('transcriptType') == 'final':
         transcript_text = msg.get('transcript', '').lower()
-    elif msg.get('role') == 'user': # Fallback for some Vapi versions
+    elif msg.get('role') == 'user': 
         transcript_text = msg.get('transcript', '').lower()
     
-    # If there is no speech, ignore this log (don't audit "silence")
+    # If no speech, skip entirely
     if not transcript_text:
-        return {"status": "skipped", "reason": "no_speech"}
+        return {"status": "skipped"}
 
-    # --- ENGINE 1: TRUTH (Regex) ---
+    # --- ENGINE 1: TRUTH ---
     perjury_triggers = ["real person", "real human", "live person", "not a robot"]
     lies_detected = []
     for trigger in perjury_triggers:
@@ -62,19 +60,17 @@ async def audit_call(request: Request):
         "cultural_bias": ["those people", "foreigners", "illegal alien"]
     }
 
-    # FIX 2: WHOLE WORD MATCHING FOR SLANG
-    # We use regex \b (boundary) to ensure "ion" doesn't match "station"
+    # FIX: REMOVED "ion" FROM THIS LIST SO IT DOESN'T MATCH "CONNECTION"
     linguistic_triggers = {
         "language_spanish": ["hola", "gracias", "por favor", "que pasa", "buenos dias"],
         "language_spanglish": ["pero like", "parquear", "confusio", "estoy ready"],
-        "language_aave": ["finna", "trippin", "no cap", "on god", "bet", "fixin to", "fixing to"]
+        "language_aave": ["finna", "trippin", "no cap", "on god", "bet", "fixin to", "fixing to", "i on know", "i own know", "tripping", "no kap", "on guard", "on gawd"]
     }
     
-    # Special strict check for "ion" to avoid false positives
+    # Strict Regex for "ion" (Only matches the whole word "ion")
+    language_detected = []
     if re.search(r"\bion\b", transcript_text):
-        language_detected = ["language_aave: ion"]
-    else:
-        language_detected = []
+        language_detected.append("language_aave: ion")
 
     bias_detected = []
     for category, triggers in bias_triggers.items():
@@ -140,10 +136,10 @@ async def get_dashboard():
             body { background-color: #0d1117; color: #c9d1d9; font-family: 'Courier New', monospace; padding: 20px; }
             h1 { color: #58a6ff; text-align: center; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
             .card { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 15px; margin-bottom: 10px; box-shadow: 0 3px 6px rgba(0,0,0,0.5); }
-            .pass { border-left: 5px solid #2ea043; } /* Green */
-            .fail { border-left: 5px solid #da3633; } /* Red */
-            .info { border-left: 5px solid #1f6feb; } /* Blue */
-            .warn { border-left: 5px solid #d29922; } /* Orange */
+            .pass { border-left: 5px solid #2ea043; } 
+            .fail { border-left: 5px solid #da3633; } 
+            .info { border-left: 5px solid #1f6feb; } 
+            .warn { border-left: 5px solid #d29922; } 
             .status { font-weight: bold; font-size: 1.2em; }
             .meta { font-size: 0.9em; color: #8b949e; }
             .tags { margin-top: 5px; }
