@@ -96,3 +96,33 @@ The NEnterprise AI Forensic Suite utilizes a dual-layer architecture to maximize
 
 **Contact:** [LinkedIn](https://www.linkedin.com/in/neka-e-a3443368/)  
 **Portfolio:** [NEnterpriseAI.com](https://NEnterpriseAI.com)
+
+---
+
+## 🛠 Technical Usage
+
+### API Endpoints
+
+This repository exposes a FastAPI forensic engine designed to audit voice agent conversations in real-time.
+
+**POST** `/audit-call`
+Accepts a JSON payload containing the call transcript from Vapi, Retell, or Twilio.
+
+**Request Structure:**
+```json
+{
+  "call_id": "call_12345",
+  "transcript_text": "Agent: This call is recorded...",
+  "metadata": {}
+}
+
+**Response:**
+```json
+{
+  "call_id": "call_12345",
+  "forensic_audit": {
+    "compliance_status": "PASS",
+    "risk_flags": [],
+    "lead_sentiment": 0.85
+  }
+}
