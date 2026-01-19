@@ -62,7 +62,7 @@ This repository contains the Python-based **Observation & Orchestration Layer**.
 
 ---
 
-# Neural DNA Forensics™
+## Neural DNA Forensics™
 
 **An Evolutionary Intelligence Substrate for Enterprise Voice AI.**
 
