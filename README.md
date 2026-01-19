@@ -2,7 +2,7 @@
 ### Framework: Evolutionary Intelligence & IP Governance (EIIG)
 
 **Author:** Neka Everett  
-**Academic Basis:** MS Applied Mathematics, Columbia University  
+**Academic Basis:** BA Biologial Anthropology, Columbia University  
 **Thesis Reference:** Langhorne (2015) - *The Basal Accountability Gradient*
 
 ---
