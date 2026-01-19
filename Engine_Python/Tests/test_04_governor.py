@@ -1,5 +1,23 @@
-import numpy as np
+"""
+=============================================================================
+© 2026 NEnterprise, LLC. All Rights Reserved.
+PROJECT: NEnterprise AI Forensic Suite - Validation Layer
+FRAMEWORK: Evolutionary Intelligence & IP Governance (EIIG)
 
+PROPRIETARY & CONFIDENTIAL:
+This script is a proprietary validation component of the NEnterprise AI 
+Forensic Suite. It is designed to verify the adherence of neural substrates 
+to the 0.0054 Basal Accountability Gradient.
+
+NOTICE: This file is for verification and audit purposes only. The 
+underlying C++ Core and mathematical engine used for high-resolution 
+forensic extraction are NOT included in this public orchestration layer. 
+Unauthorized distribution or commercial exploitation of this logic is 
+strictly prohibited.
+
+AUTHOR: Neka Everett | Researcher, Evolutionary Intelligence and IP Governance (EIIG)
+=============================================================================
+"""
 """
 NEnterprise AI Forensic Model #4: The Homeostatic Governor
 Technical Basis: Models of the Mind (MOTM) Ch 5 - Excitation and Inhibition
@@ -13,6 +31,8 @@ This model translates that legal principle into a neural architecture where
 Inhibitory (I) signals act as a 'Veto' over Excitatory (E) processing drives, 
 ensuring the system remains within homeostatic (and legal) bounds.
 """
+
+import numpy as np
 
 class HomeostaticGovernor:
     """
