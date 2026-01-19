@@ -1,21 +1,31 @@
-MIT License
+=============================================================================
+NENTERPRISE END-USER LICENSE AGREEMENT (EULA)
+© 2026 NEnterprise, LLC. All Rights Reserved.
+=============================================================================
 
-Copyright (c) 2026 Neka Everett
+This Software, including the 11-Model Forensic Suite and the 0.0054 Basal 
+Accountability Gradient logic, is the exclusive property of NEnterprise, LLC.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. LICENSE GRANT: This repository is provided for institutional review and 
+   portfolio evaluation only. No license is granted for commercial use, 
+   distribution, or modification without express written consent.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+2. RESTRICTIONS:
+   - NO DERIVATIVE WORKS: You may not create derivative works based on this 
+     Software or its underlying mathematical frameworks.
+   - NO REVERSE ENGINEERING: You may not decompile, disassemble, or attempt 
+     to derive the source code of the proprietary C++ binaries.
+   - NO REDISTRIBUTION: You may not redistribute, sub-license, or sell 
+     any portion of this framework.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+3. INTELLECTUAL PROPERTY: All "Neural DNA" methodologies, "Neural Archaeology" 
+   logic, and "Phylogenetic Audit" protocols remain the sole IP of NEnterprise, 
+   LLC. Unauthorized use constitutes a violation of international copyright 
+   and trade secret laws.
+
+4. TERMINATION: This review license is effective until terminated by 
+   NEnterprise, LLC. Upon termination, you must destroy all copies of the 
+   Software in your possession.
+
+BY ACCESSING OR VIEWING THIS REPOSITORY, YOU AGREE TO THESE TERMS.
+=============================================================================
