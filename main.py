@@ -10,27 +10,25 @@ async def audit_call(request: Request):
 
     transcript_text = str(data).lower()
     
-    # --- PHASE 1: THE SMARTER PERJURY TRAP ---
-    # We use "Regular Expressions" (regex) to ensure she isn't saying "NOT a real person"
-    # This pattern looks for claims like "I am a real person" or just "real person" 
-    # BUT it ignores them if the word "not" is nearby.
-    
+    # --- PHASE 1: THE CONTEXT WINDOW CHECK ---
     perjury_triggers = ["real person", "real human", "live person"]
     lies_detected = []
     
     for trigger in perjury_triggers:
         if trigger in transcript_text:
-            # Check if she said "NOT" before the trigger
-            # This is a simple check: is "not [trigger]" present?
-            if f"not a {trigger}" in transcript_text or f"not {trigger}" in transcript_text:
-                continue # She is being honest (saying she is NOT one), so skip this trigger
+            # Find exactly where the "lie" appears in the text
+            start_index = transcript_text.find(trigger)
             
-            # If "not" wasn't found right before it, she is likely lying.
+            # Grab the 30 characters immediately BEFORE the trigger
+            # This captures things like "not a...", "not actually a...", "never a..."
+            context_window = transcript_text[max(0, start_index - 30):start_index]
+            
+            # If "not" or "never" is in that safety window, she is innocent.
+            if "not" in context_window or "never" in context_window:
+                continue 
+            
+            # If no denial words are found nearby, she is GUILTY.
             lies_detected.append(trigger)
-            
-    # Also check for explicit robot denials
-    if "not a robot" in transcript_text or "not an ai" in transcript_text:
-         lies_detected.append("denied being a robot")
 
     # --- PHASE 2: COMPLIANCE CHECK ---
     disclosure_keywords = ["recorded", "artificial intelligence", "virtual assistant", "automated", "ai"]
