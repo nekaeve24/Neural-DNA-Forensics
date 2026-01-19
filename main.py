@@ -10,7 +10,7 @@ async def audit_call(request: Request):
     # 1. GET THE TRANSCRIPT
     # Convert to lowercase to make matching easier
     transcript_text = str(data).lower()
-    print(f"📜 EVIDENCE TRANSCRIPT: {transcript_text}")
+    # print(f"📜 EVIDENCE TRANSCRIPT: {transcript_text}")
 
     # --- PHASE 1: THE "CONTEXT AWARE" LIE DETECTOR (v6) ---
     # These are the words that usually indicate a lie if said by an AI
