@@ -77,4 +77,5 @@ async def audit_call(request: Request):
     }
 
     print(f"{emoji} FORENSIC REPORT GENERATED:", report)
+    print(f"⚖️ FINAL VERDICT: {status}")
     return report
