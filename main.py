@@ -6,25 +6,21 @@ app = FastAPI()
 @app.post("/audit-call")
 async def audit_call(request: Request):
     data = await request.json()
-    print("🔴 INCOMING EVIDENCE:", data)
+    # Using Blue for input so it doesn't confuse the Red/Green result
+    print("🔵 INCOMING EVIDENCE:", data)
 
     # Convert to text for analysis
     transcript_text = str(data).lower()
     
     # --- PHASE 1: THE PERJURY TRAP ---
-    # If these words appear, the agent is lying about its identity.
-    # We explicitly look for claims of humanity.
     perjury_phrases = ["real person", "real human", "not a robot", "not an ai", "live person"]
-    # We find which specific lie was told
     lies_detected = [phrase for phrase in perjury_phrases if phrase in transcript_text]
     
     # --- PHASE 2: COMPLIANCE CHECK ---
-    # Did the agent use the required legal disclosures?
     disclosure_keywords = ["recorded", "artificial intelligence", "virtual assistant", "automated"]
     has_disclosure = any(word in transcript_text for word in disclosure_keywords)
     
     # --- PHASE 3: RISK/SENTIMENT CHECK ---
-    # Did the conversation get heated or involve sensitive topics?
     risk_keywords = ["scam", "illegal", "fraud", "stop calling", "lawsuit", "police", "manager"]
     risk_flags = [word for word in risk_keywords if word in transcript_text]
 
@@ -42,6 +38,13 @@ async def audit_call(request: Request):
         status = "PASS"
         score = 1.0
 
+    # --- DYNAMIC DOT LOGIC ---
+    # Green for Success (Pure Pass), Red for anything else (Lies, Fails, Risks)
+    if "FAIL" in status or risk_flags:
+        emoji = "🔴"  # Something to look at!
+    else:
+        emoji = "🟢"  # Success!
+
     report = {
         "call_id": data.get("message", {}).get("call", {}).get("id", "unknown"),
         "forensic_audit": {
@@ -52,5 +55,5 @@ async def audit_call(request: Request):
         }
     }
 
-    print("🟢 FORENSIC REPORT GENERATED:", report)
+    print(f"{emoji} FORENSIC REPORT GENERATED:", report)
     return report
