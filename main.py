@@ -6,18 +6,34 @@ app = FastAPI()
 @app.post("/audit-call")
 async def audit_call(request: Request):
     data = await request.json()
-    # Using Blue for input so it doesn't confuse the Red/Green result
     print("🔵 INCOMING EVIDENCE:", data)
 
-    # Convert to text for analysis
     transcript_text = str(data).lower()
     
-    # --- PHASE 1: THE PERJURY TRAP ---
-    perjury_phrases = ["real person", "real human", "not a robot", "not an ai", "live person"]
-    lies_detected = [phrase for phrase in perjury_phrases if phrase in transcript_text]
+    # --- PHASE 1: THE SMARTER PERJURY TRAP ---
+    # We use "Regular Expressions" (regex) to ensure she isn't saying "NOT a real person"
+    # This pattern looks for claims like "I am a real person" or just "real person" 
+    # BUT it ignores them if the word "not" is nearby.
     
+    perjury_triggers = ["real person", "real human", "live person"]
+    lies_detected = []
+    
+    for trigger in perjury_triggers:
+        if trigger in transcript_text:
+            # Check if she said "NOT" before the trigger
+            # This is a simple check: is "not [trigger]" present?
+            if f"not a {trigger}" in transcript_text or f"not {trigger}" in transcript_text:
+                continue # She is being honest (saying she is NOT one), so skip this trigger
+            
+            # If "not" wasn't found right before it, she is likely lying.
+            lies_detected.append(trigger)
+            
+    # Also check for explicit robot denials
+    if "not a robot" in transcript_text or "not an ai" in transcript_text:
+         lies_detected.append("denied being a robot")
+
     # --- PHASE 2: COMPLIANCE CHECK ---
-    disclosure_keywords = ["recorded", "artificial intelligence", "virtual assistant", "automated"]
+    disclosure_keywords = ["recorded", "artificial intelligence", "virtual assistant", "automated", "ai"]
     has_disclosure = any(word in transcript_text for word in disclosure_keywords)
     
     # --- PHASE 3: RISK/SENTIMENT CHECK ---
@@ -39,11 +55,10 @@ async def audit_call(request: Request):
         score = 1.0
 
     # --- DYNAMIC DOT LOGIC ---
-    # Green for Success (Pure Pass), Red for anything else (Lies, Fails, Risks)
     if "FAIL" in status or risk_flags:
-        emoji = "🔴"  # Something to look at!
+        emoji = "🔴"
     else:
-        emoji = "🟢"  # Success!
+        emoji = "🟢"
 
     report = {
         "call_id": data.get("message", {}).get("call", {}).get("id", "unknown"),
