@@ -13,30 +13,29 @@ Unauthorized use, reproduction, or reverse engineering of the logical
 thresholds contained herein is strictly prohibited under institutional 
 data sovereignty protocols.
 
-AUTHOR: Neka Everett | MS Applied Mathematics Candidate, Columbia University
+AUTHOR: Neka Everett | BA Biological Anthropology, Columbia University
 OFFICIAL PORTFOLIO: NEnterpriseAI.com
-CONTACT: neka.everett@gmail.com
 =============================================================================
+"""
+"""
+NEnterprise AI Forensic Model #1: The Integrity Gate
+Technical Basis: Welford's Algorithm for Online Variance
+Thesis Reference: Langhorne (2015) - Biological Homeostasis
+
+GOAL: 
+Establish a biological 'Homeostatic Baseline' for data integrity.
+This model implements a real-time variance engine that identifies the 
+Sovereign Baseline of a data stream. By calculating entropy (variance) 
+incremental, it ensures that incoming information remains within stable 
+homeostatic bounds, preventing systemic shock from volatile data inputs.
 """
 
 class IntegrityGate:
-    """
-    NEnterprise AI Forensic Model #1: The Integrity Gate
-    Technical Basis: Welford's Algorithm for Online Variance
-    Thesis Reference: Langhorne (2015) - Biological Homeostasis
-
-    GOAL: 
-    Establish a biological 'Homeostatic Baseline' for data integrity.
-    This model implements a real-time variance engine that identifies the 
-    Sovereign Baseline of a data stream. By calculating entropy (variance) 
-    incremental, it ensures that incoming information remains within stable 
-    homeostatic bounds, preventing systemic shock from volatile data inputs.
-    """
     #1. Named the Integrity_Gate (IG) neuron
     def __init__(self):
-        #2. Defined the IG neuron (The Experience Counter)
-        self.n = 0
-        #3. Calculate the mean of the IG neuron (The Sovereign Baseline)
+    #2. Defined the IG neuron (The Experience Counter)
+    self.n = 0
+    #3. Calculate the mean of the IG neuron (The Sovereign Baseline)
         self.mu = 0.0
         #4. Define the variance (The Variance Engine)
         self.m2 = 0.0
