@@ -9,7 +9,6 @@ from datetime import datetime
 
 app = FastAPI()
 
-# 1. ALLOW BROWSER ACCESS (CORS)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,19 +16,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 2. IN-MEMORY DATABASE (Keeps last 20 calls)
 audit_history = []
 
-# --- THE AUDITOR (Your Logic) ---
 @app.post("/audit-call")
 async def audit_call(request: Request):
     data = await request.json()
-    transcript_text = str(data.get('message', {}).get('transcript', '')).lower()
     
+    # FIX 1: STRICTER TRANSCRIPT EXTRACTION
+    # Only get the actual spoken text. Do NOT dump the raw JSON.
+    transcript_text = ""
+    msg = data.get('message', {})
+    
+    # Vapi sends different event types. We only want the final transcript.
+    if msg.get('type') == 'transcript' and msg.get('transcriptType') == 'final':
+        transcript_text = msg.get('transcript', '').lower()
+    elif msg.get('role') == 'user': # Fallback for some Vapi versions
+        transcript_text = msg.get('transcript', '').lower()
+    
+    # If there is no speech, ignore this log (don't audit "silence")
     if not transcript_text:
-        transcript_text = str(data).lower()
+        return {"status": "skipped", "reason": "no_speech"}
 
-    # Engine 1: Truth
+    # --- ENGINE 1: TRUTH (Regex) ---
     perjury_triggers = ["real person", "real human", "live person", "not a robot"]
     lies_detected = []
     for trigger in perjury_triggers:
@@ -44,7 +52,7 @@ async def audit_call(request: Request):
     risk_keywords = ["scam", "illegal", "fraud", "stop calling", "lawsuit", "police"]
     risk_flags = [word for word in risk_keywords if word in transcript_text]
 
-    # Engine 2: Bias & Linguistics
+    # --- ENGINE 2: BIAS & LINGUISTICS ---
     blob = TextBlob(transcript_text)
     sentiment_score = blob.sentiment.polarity 
     
@@ -54,19 +62,26 @@ async def audit_call(request: Request):
         "cultural_bias": ["those people", "foreigners", "illegal alien"]
     }
 
+    # FIX 2: WHOLE WORD MATCHING FOR SLANG
+    # We use regex \b (boundary) to ensure "ion" doesn't match "station"
     linguistic_triggers = {
         "language_spanish": ["hola", "gracias", "por favor", "que pasa", "buenos dias"],
         "language_spanglish": ["pero like", "parquear", "confusio", "estoy ready"],
-        "language_aave": ["finna", "ion", "trippin", "no cap", "on god", "bet", "fina", "fixin to", "fixing to", "i on know", "i own know", "tripping", "no kap", "on guard", "on gawd"]
+        "language_aave": ["finna", "trippin", "no cap", "on god", "bet", "fixin to", "fixing to"]
     }
     
+    # Special strict check for "ion" to avoid false positives
+    if re.search(r"\bion\b", transcript_text):
+        language_detected = ["language_aave: ion"]
+    else:
+        language_detected = []
+
     bias_detected = []
     for category, triggers in bias_triggers.items():
         for trigger in triggers:
             if trigger in transcript_text:
                 bias_detected.append(f"{category}: {trigger}")
 
-    language_detected = []
     for category, triggers in linguistic_triggers.items():
         for trigger in triggers:
             if trigger in transcript_text:
@@ -92,7 +107,6 @@ async def audit_call(request: Request):
         status = "PASS (Linguistic Marker)"
         emoji = "🔵"
 
-    # Create Report
     report = {
         "timestamp": datetime.now().strftime("%H:%M:%S"),
         "verdict": status,
@@ -103,7 +117,6 @@ async def audit_call(request: Request):
         "transcript_snippet": transcript_text[:100] + "..."
     }
 
-    # Save to History
     audit_history.insert(0, report)
     if len(audit_history) > 20:
         audit_history.pop()
@@ -111,12 +124,10 @@ async def audit_call(request: Request):
     print(f"{emoji} LOG: {status}")
     return report
 
-# --- NEW: DATA ENDPOINT FOR DASHBOARD ---
 @app.get("/data")
 async def get_data():
     return audit_history
 
-# --- NEW: THE DASHBOARD UI (HTML) ---
 @app.get("/", response_class=HTMLResponse)
 async def get_dashboard():
     return """
@@ -124,6 +135,7 @@ async def get_dashboard():
     <html>
     <head>
         <title>NEnterprise Audit</title>
+        <meta http-equiv="refresh" content="5">
         <style>
             body { background-color: #0d1117; color: #c9d1d9; font-family: 'Courier New', monospace; padding: 20px; }
             h1 { color: #58a6ff; text-align: center; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
@@ -181,7 +193,6 @@ async def get_dashboard():
     </html>
     """
 
-# --- CRITICAL: START THE SERVER ---
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     uvicorn.run(app, host="0.0.0.0", port=port)
