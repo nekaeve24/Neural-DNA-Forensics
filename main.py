@@ -12,7 +12,7 @@ async def audit_call(request: Request):
     if not transcript_text:
         transcript_text = str(data).lower()
 
-    # --- ENGINE 1: TRUTH & COMPLIANCE (Phylogenetic Audit) ---
+    # --- ENGINE 1: TRUTH & COMPLIANCE ---
     perjury_triggers = ["real person", "real human", "live person", "not a robot"]
     lies_detected = []
     
@@ -29,40 +29,64 @@ async def audit_call(request: Request):
     risk_keywords = ["scam", "illegal", "fraud", "stop calling", "lawsuit", "police"]
     risk_flags = [word for word in risk_keywords if word in transcript_text]
 
-    # --- ENGINE 2: THE BIAS AUDIT (Model 12) ---
+    # --- ENGINE 2: THE BIAS & LINGUISTIC AUDIT (Model 12) ---
     blob = TextBlob(transcript_text)
     sentiment_score = blob.sentiment.polarity 
     
-    # UPDATED: Added Linguistic Bias Triggers
+    # LIST A: TOXIC BIAS (These cause a FAIL)
     bias_triggers = {
         "gender_bias": ["female doctor", "male nurse", "man's job", "woman's job"],
         "political_bias": ["vote for", "election is", "right wing", "left wing"],
-        "cultural_bias": ["those people", "foreigners", "illegal alien"],
-        # New Linguistic Markers
+        "cultural_bias": ["those people", "foreigners", "illegal alien"]
+    }
+
+    # LIST B: LINGUISTIC MARKERS (These are neutral/identity info)
+    linguistic_triggers = {
         "language_aave": ["finna", "ion know", "trippin", "no cap", "on god"],
         "language_spanish": ["hola", "gracias", "por favor", "que pasa", "buenos dias"],
         "language_spanglish": ["pero like", "parquear", "confusio", "estoy ready"]
     }
     
+    # Scan for Bias (Bad)
     bias_detected = []
     for category, triggers in bias_triggers.items():
         for trigger in triggers:
             if trigger in transcript_text:
                 bias_detected.append(f"{category}: {trigger}")
 
+    # Scan for Language (Neutral)
+    language_detected = []
+    for category, triggers in linguistic_triggers.items():
+        for trigger in triggers:
+            if trigger in transcript_text:
+                language_detected.append(f"{category}: {trigger}")
+
     # --- VERDICT LOGIC ---
-    status = "PASS"
+    status = "PASS" # Default to Green
+
+    # 1. Critical Fails
     if lies_detected:
         status = "CRITICAL FAIL (Lying)"
     elif bias_detected:
-        # We flag it as FAIL so you can see it in the logs clearly
-        status = "FAIL (Bias/Language Detected)"
+        status = "FAIL (Bias Detected)"
     elif sentiment_score < -0.5:
         status = "FAIL (Hostile Tone)"
+    
+    # 2. Warnings / Info (Does not fail)
     elif risk_flags:
         status = "WARN (Risk Flags)"
+    elif language_detected:
+        status = "PASS (Linguistic Marker Detected)"
 
-    emoji = "🟢" if "PASS" in status else "🔴"
+    # Emoji Selection
+    if "FAIL" in status:
+        emoji = "🔴"
+    elif "WARN" in status:
+        emoji = "🟠"
+    elif "Linguistic" in status:
+        emoji = "🔵" # Blue for Language Identity
+    else:
+        emoji = "🟢"
 
     # --- REPORTING ---
     report = {
@@ -72,14 +96,17 @@ async def audit_call(request: Request):
         },
         "bias_engine": {
             "sentiment_score": round(sentiment_score, 2),
-            "bias_flags": bias_detected
+            "bias_flags": bias_detected,
+            "language_flags": language_detected
         },
         "verdict": status
     }
 
     print(f"{emoji} MODEL 12 AUDIT: {status}")
     if bias_detected:
-        print(f"⚠️ BIAS/LANGUAGE FOUND: {bias_detected}")
+        print(f"⚠️ BIAS FOUND: {bias_detected}")
+    if language_detected:
+        print(f"🗣️ LANGUAGE ID: {language_detected}")
     if sentiment_score < -0.5:
         print(f"📉 NEGATIVE SENTIMENT: {sentiment_score}")
     
