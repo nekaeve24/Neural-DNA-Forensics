@@ -30,7 +30,6 @@ AUTHOR: Neka Everett | Researcher, Evolutionary Intelligence and IP Governance (
     that institutional data has a persistent mathematical 'center of gravity,' 
     allowing for the immediate detection of entropy that threatens systemic integrity.
 """
-
 import sys
 import os
 
@@ -48,7 +47,7 @@ except ImportError:
     print(f"\n[ERROR] System Disconnect: integrity_gate.py not found.")
     print(f"Looked in: {production_dir}")
     sys.exit(1)
-
+    
 # 3. SETUP: Initialize the Gate and the Market Data stream
 gate = IntegrityGate()
 data_signals = [10.2, 12.3, 11.5, 13.1, 9.9]
