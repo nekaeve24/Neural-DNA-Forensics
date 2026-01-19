@@ -11,7 +11,6 @@
 The NEnterprise AI Forensic Suite is a specialized diagnostic engine designed for Mechanistic Interpretability and Neural Archaeology. By utilizing a proprietary 0.0054 Basal Accountability Gradient, this framework provides a mathematical chain of custody for neural weights, ensuring data sovereignty and bias mitigation in high-stakes institutional AI environments.
 
 
-
 ---
 
 ## 🏗 The 11-Model Forensic Pipeline
@@ -60,6 +59,25 @@ This repository contains the Python-based **Observation & Orchestration Layer**.
 ### 11. Logic Reconstruction
 - **Basis:** Predictive Forensic Modeling.
 - **Function:** Extrapolates validated past narratives to assess future model reliability.
+
+---
+
+# Neural DNA Forensics™
+
+**An Evolutionary Intelligence Substrate for Enterprise Voice AI.**
+
+This framework provides a deterministic "Forensic Layer" for Large Language Models (LLMs). 
+It audits conversational data in real-time to ensure compliance, safety, and brand alignment 
+for regulated industries (Finance, Healthcare, Legal).
+
+## Core Features
+- **Real-time Compliance Auditing:** Prevents hallucinations in high-stakes environments.
+- **Evolutionary Lead Genotyping:** Scores lead probability based on historical interactions.
+- **Agnostic Integration:** Compatible with Vapi, Retell AI, and Twilio.
+
+## Usage
+This repository hosts the analysis engine. 
+Voice agents (deployed separately) send transcripts to the `/audit-call` endpoint for validation.
 
 ---
 
