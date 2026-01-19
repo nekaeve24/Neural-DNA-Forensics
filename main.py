@@ -123,7 +123,7 @@ async def get_dashboard():
     <!DOCTYPE html>
     <html>
     <head>
-        <title>NEnterprise God View</title>
+        <title>NEnterprise Audit</title>
         <style>
             body { background-color: #0d1117; color: #c9d1d9; font-family: 'Courier New', monospace; padding: 20px; }
             h1 { color: #58a6ff; text-align: center; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
