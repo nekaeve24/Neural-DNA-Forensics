@@ -184,6 +184,8 @@ async def get_dashboard():
     </html>
     """
 
+# --- CRITICAL: START THE SERVER (WITH SILENCED LOGS) ---
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    # 'access_log=False' stops the spam so you can see your print statements
+    uvicorn.run(app, host="0.0.0.0", port=port, access_log=False)
