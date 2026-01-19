@@ -3,7 +3,7 @@
 
 **Author:** Neka Everett  
 **Academic Basis:** BA Biologial Anthropology, Columbia University  
-**Thesis Reference:** Langhorne (2015) - *The Basal Accountability Gradient*
+**Thesis Reference:** Langhorne (2015) - *DNA and the Consumer*
 
 ---
 
