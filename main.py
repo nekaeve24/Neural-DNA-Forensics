@@ -1,4 +1,3 @@
-import re
 import os
 import uvicorn
 from fastapi import FastAPI, Request
@@ -60,24 +59,20 @@ async def audit_call(request: Request):
         "cultural_bias": ["those people", "foreigners", "illegal alien"]
     }
 
-    # FIX: REMOVED "ion" FROM THIS LIST SO IT DOESN'T MATCH "CONNECTION"
+    # CLEAN LIST (No "ion" headache)
     linguistic_triggers = {
         "language_spanish": ["hola", "gracias", "por favor", "que pasa", "buenos dias"],
         "language_spanglish": ["pero like", "parquear", "confusio", "estoy ready"],
         "language_aave": ["finna", "trippin", "no cap", "on god", "bet", "fixin to", "fixing to", "i on know", "i own know", "tripping", "no kap", "on guard", "on gawd"]
     }
     
-    # Strict Regex for "ion" (Only matches the whole word "ion")
-    language_detected = []
-    if re.search(r"\bion\b", transcript_text):
-        language_detected.append("language_aave: ion")
-
     bias_detected = []
     for category, triggers in bias_triggers.items():
         for trigger in triggers:
             if trigger in transcript_text:
                 bias_detected.append(f"{category}: {trigger}")
 
+    language_detected = []
     for category, triggers in linguistic_triggers.items():
         for trigger in triggers:
             if trigger in transcript_text:
