@@ -8,7 +8,7 @@
 ---
 
 ## 🔬 Executive Summary
-The NEnterprise AI Forensic Suite is a specialized diagnostic engine designed for **Mechanistic Interpretability** and **Neural Archaeology**. By utilizing a proprietary **0.0054 Basal Accountability Gradient**, this framework provides a mathematical chain of custody for neural weights, ensuring data sovereignty and bias mitigation in high-stakes institutional AI environments.
+The NEnterprise AI Forensic Suite is a specialized diagnostic engine designed for Mechanistic Interpretability and Neural Archaeology. By utilizing a proprietary 0.0054 Basal Accountability Gradient, this framework provides a mathematical chain of custody for neural weights, ensuring data sovereignty and bias mitigation in high-stakes institutional AI environments.
 
 
 
@@ -74,9 +74,7 @@ The NEnterprise AI Forensic Suite utilizes a dual-layer architecture to maximize
 ---
 
 ## ⚖️ Proprietary Notice & IP Governance
-© 2026 NEnterprise, LLC. All Rights Reserved.
-
-The logical thresholds, specifically the **0.0054 Basal Accountability Gradient**, are the intellectual property of NEnterprise, LLC. This public repository serves as a portfolio of the architectural logic. Reverse engineering of the underlying C++ substrates is strictly prohibited.
+© 2026 NEnterprise, LLC. All Rights Reserved. The logical thresholds, specifically the 0.0054 Basal Accountability Gradient, are the intellectual property of NEnterprise, LLC. This public repository serves as a portfolio of the architectural logic. Reverse engineering of the underlying C++ substrates is strictly prohibited.
 
 **Contact:** [LinkedIn](https://www.linkedin.com/in/neka-e-a3443368/)  
 **Portfolio:** [NEnterpriseAI.com](https://NEnterpriseAI.com)
