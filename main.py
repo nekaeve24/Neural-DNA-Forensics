@@ -103,6 +103,8 @@ async def audit_call(request: Request):
 
     # --- REPORTING ---
     report = {
+        "emoji": emoji,
+        "timestamp": datetime.now().strftime("%H:%M:%S"),
         "truth_engine": {
             "lies_detected": lies_detected,
             "risk_flags": risk_flags
@@ -173,12 +175,12 @@ async def get_dashboard():
                         const div = document.createElement('div');
                         div.className = `card ${cssClass}`;
                         let tagsHtml = '';
-                        log.bias_flags.forEach(tag => tagsHtml += `<span class="tag" style="color:#ff7b72">${tag}</span>`);
-                        log.language_flags.forEach(tag => tagsHtml += `<span class="tag" style="color:#79c0ff">${tag}</span>`);
+                        log.bias_engine.bias_flags.forEach(tag => tagsHtml += `<span class="tag" style="color:#ff7b72">${tag}</span>`);
+                        log.bias_engine.language_flags.forEach(tag => tagsHtml += `<span class="tag" style="color:#79c0ff">${tag}</span>`);
 
                         div.innerHTML = `
                             <div class="status">${log.emoji} ${log.verdict} <span style="float:right; font-size:0.8em">${log.timestamp}</span></div>
-                            <div class="meta">Sentiment: ${log.sentiment} | Snippet: ${log.transcript_snippet}</div>
+                            <div class="meta">Sentiment: ${log.bias_engine.sentiment_score}</div>
                             <div class="tags">${tagsHtml}</div>
                         `;
                         container.appendChild(div);
