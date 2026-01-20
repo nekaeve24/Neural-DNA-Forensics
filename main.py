@@ -1,8 +1,13 @@
 import re
+import os
 from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
 from textblob import TextBlob
+from datetime import datetime
 
 app = FastAPI()
+
+audit_history = []
 
 @app.post("/audit-call")
 async def audit_call(request: Request):
@@ -120,4 +125,68 @@ async def audit_call(request: Request):
     
     print(f"⚖️ FINAL VERDICT: {status}")
 
+    audit_history.insert(0, report)
+    if len(audit_history) > 20:
+        audit_history.pop()
+        
     return report
+
+# --- NEW BLOCK 4: GLOBAL VIEW DASHBOARD ---
+@app.get("/", response_class=HTMLResponse)
+async def get_dashboard():
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>NEnterprise Audit: Global View</title>
+        <style>
+            body { background-color: #0d1117; color: #c9d1d9; font-family: 'Courier New', monospace; padding: 20px; }
+            h1 { color: #58a6ff; text-align: center; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+            .card { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 15px; margin-bottom: 10px; box-shadow: 0 3px 6px rgba(0,0,0,0.5); }
+            .pass { border-left: 5px solid #2ea043; }
+            .fail { border-left: 5px solid #da3633; }
+            .info { border-left: 5px solid #1f6feb; }
+            .warn { border-left: 5px solid #d29922; }
+            .status { font-weight: bold; font-size: 1.2em; }
+            .meta { font-size: 0.9em; color: #8b949e; }
+            .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-right: 5px; background: #30363d; }
+            #monitor { max-width: 800px; margin: 0 auto; }
+        </style>
+        <script>
+            async function fetchData() {
+                try {
+                    const response = await fetch('/data');
+                    const data = await response.json();
+                    const container = document.getElementById('log-container');
+                    container.innerHTML = ''; 
+                    data.forEach(log => {
+                        let cssClass = 'pass';
+                        if (log.verdict.includes('FAIL')) cssClass = 'fail';
+                        else if (log.verdict.includes('Linguistic')) cssClass = 'info';
+                        else if (log.verdict.includes('WARN')) cssClass = 'warn';
+
+                        const div = document.createElement('div');
+                        div.className = `card ${cssClass}`;
+                        let tagsHtml = '';
+                        log.bias_flags.forEach(tag => tagsHtml += `<span class="tag" style="color:#ff7b72">${tag}</span>`);
+                        log.language_flags.forEach(tag => tagsHtml += `<span class="tag" style="color:#79c0ff">${tag}</span>`);
+
+                        div.innerHTML = `
+                            <div class="status">${log.emoji} ${log.verdict} <span style="float:right; font-size:0.8em">${log.timestamp}</span></div>
+                            <div class="meta">Sentiment: ${log.sentiment} | Snippet: ${log.transcript_snippet}</div>
+                            <div class="tags">${tagsHtml}</div>
+                        `;
+                        container.appendChild(div);
+                    });
+                } catch (e) { console.error("Error", e); }
+            }
+            setInterval(fetchData, 1000);
+            fetchData();
+        </script>
+    </head>
+    <body>
+        <h1>🛡️ NEnterprise Audit: Global View</h1>
+        <div id="monitor"><div id="log-container"></div></div>
+    </body>
+    </html>
+    """
