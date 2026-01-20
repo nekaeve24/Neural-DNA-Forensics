@@ -131,6 +131,11 @@ async def audit_call(request: Request):
         
     return report
 
+# --- THE DATA FEED ---
+@app.get("/data")
+async def get_data():
+    return audit_history
+
 # --- NEW BLOCK 4: GLOBAL VIEW DASHBOARD ---
 @app.get("/", response_class=HTMLResponse)
 async def get_dashboard():
