@@ -77,7 +77,7 @@ async def audit_call(request: Request):
             }
             
         # 8. VAPI VOICE COMMAND: Final response to the user
-             return {
+            return {
                 "results": [{
                     "toolCallId": data.get('message', {}).get('toolCalls', [{}])[0].get('id'),
                     "result": f"Great! I have scheduled your tax preparation appointment for {chosen_day}. You will receive a confirmation shortly."
