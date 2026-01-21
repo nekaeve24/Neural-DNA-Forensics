@@ -186,11 +186,16 @@ async def get_dashboard():
                         });
                     }
 
+                    let riskTags = '';
+                    log.risks.forEach(risk => {
+                        // This creates the colored tags for any risk identified
+                        riskTags += `<span class="tag">${risk}</span>`;
+                    });
+
                     div.innerHTML = `
                         <div class="status">${log.emoji} ${log.verdict} <span style="float:right; font-size:0.8em">${log.timestamp}</span></div>
-                        <div class="meta">Sentiment: ${log.bias_engine.sentiment_score}</div>
-                        <div class="tags">${tagsHtml}</div>
-                        `;
+                        <div class="tags">${riskTags}</div>
+                    `;
                         container.appendChild(div);
                     });
                 } catch (e) { console.error("Error", e); }
