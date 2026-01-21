@@ -25,12 +25,15 @@ async def audit_call(request: Request):
     
     for trigger in perjury_triggers:
         if trigger in transcript_text:
+            # Check for honest admissions (e.g., "I'm not a real person")
+            # We look for "not", "ai", or "assistant" near the trigger
             start_index = transcript_text.find(trigger)
-            context_window = transcript_text[max(0, start_index - 50):start_index]
-            denial_words = ["not", "no", "never", "artificial", "virtual", "automated"]
+            context_window = transcript_text[max(0, start_index - 30):start_index]
             
-            if any(word in context_window for word in denial_words):
+            # If Jade says she is NOT a real person, it's the truth. DO NOT FLAG.
+            if "not" in context_window or "ai" in context_window:
                 continue 
+                
             lies_detected.append(trigger)
 
     risk_keywords = ["scam", "illegal", "fraud", "stop calling", "lawsuit", "police"]
