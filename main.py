@@ -100,7 +100,18 @@ async def audit_call(request: Request):
     audit_history.insert(0, report)
     if len(audit_history) > 20:
         audit_history.pop()
-        
+
+    # --- CONSOLE REPORTING ---
+    print(f"\n--- 📋 FINAL AUDIT REPORT ---")
+    print(f"Result: {emoji} {'Passed' if status == 'PASS' else status}")
+    print(f"Timestamp: {report['timestamp']}")
+    
+    if report['risks']:
+        print(f"⚠️ Risks/Flags Detected: {', '.join(report['risks'])}")
+    else:
+        print(f"✅ No risks identified.")
+    print(f"---------------------------\n")
+
     return report
 
 @app.get("/data")
