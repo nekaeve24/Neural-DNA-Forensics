@@ -62,27 +62,27 @@ async def audit_call(request: Request):
         # This string would be sent back to the voice engine in the next phase
         return {"status": "scheduling", "options": open_slots}
 
+        chosen_day = None  
     # 6. SLOT CAPTURE: Listen for the user's choice
         chosen_day = next((day for day in open_slots if day.lower() in transcript_text), None)
-        
-if chosen_day:
-
-    # 7. BOOKING EXECUTION: Create the actual event
-        print(f"--- 📅 JADE BOOKING: Registering 'Tax Prep' for {chosen_day} ---")
-        new_event = {
-            'summary': f'Tax Prep Appointment (Via Jade)',
-            'description': f'Scheduled during AI audit call on {chosen_day}',
-            'start': {'dateTime': '2026-01-22T10:00:00Z'}, 
-            'end': {'dateTime': '2026-01-22T11:00:00Z'}
-        }
-        
-    # 8. VAPI VOICE COMMAND: Final response to the user
-         return {
-            "results": [{
-                "toolCallId": data.get('message', {}).get('toolCalls', [{}])[0].get('id'),
-                "result": f"Great! I have scheduled your tax preparation appointment for {chosen_day}. You will receive a confirmation shortly."
-            }]
-        }
+       
+    if chosen_day:
+        # 7. BOOKING EXECUTION: Create the actual event
+            print(f"--- 📅 JADE BOOKING: Registering 'Tax Prep' for {chosen_day} ---")
+            new_event = {
+                'summary': f'Tax Prep Appointment (Via Jade)',
+                'description': f'Scheduled during AI audit call on {chosen_day}',
+                'start': {'dateTime': '2026-01-22T10:00:00Z'}, 
+                'end': {'dateTime': '2026-01-22T11:00:00Z'}
+            }
+            
+        # 8. VAPI VOICE COMMAND: Final response to the user
+             return {
+                "results": [{
+                    "toolCallId": data.get('message', {}).get('toolCalls', [{}])[0].get('id'),
+                    "result": f"Great! I have scheduled your tax preparation appointment for {chosen_day}. You will receive a confirmation shortly."
+                }]
+            }
         
     # --- ENGINE 1: TRUTH & COMPLIANCE ---
     perjury_triggers = ["real person", "real human", "live person", "not a robot"]
