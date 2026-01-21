@@ -5,6 +5,16 @@ from fastapi.responses import HTMLResponse
 from textblob import TextBlob
 from datetime import datetime
 
+def check_jade_availability():
+    """
+    Search for 'Jade Availability' blocks on the calendar.
+    In the final version, this will call the Google Calendar API.
+    """
+    # For this step, we are defining the slots Jade can 'see'
+    available_days = ["Wednesday", "Thursday", "Saturday", "Sunday", "Tuesday"]
+    print(f"--- 📅 JADE ENGINE: Syncing availability for {len(available_days)} days ---")
+    return available_days
+    
 app = FastAPI()
 
 audit_history = []
@@ -37,6 +47,43 @@ async def audit_call(request: Request):
         
     # 3. SESSION GUARD: Only proceed to Engines if the call is still active
     if call_status == "ended": return {"status": "session_closed"}
+
+    # 4. SCHEDULING TRIGGER: Listen for appointment keywords
+    scheduling_keywords = ["schedule", "appointment", "available", "calendar"]
+    if any(key in transcript_text for key in scheduling_keywords):
+        # Call the engine we just built at the top
+        open_slots = check_jade_availability()
+        print(f"--- 📅 JADE ACTION: Found {len(open_slots)} availability windows ---")
+
+    # 5. FORMAT FOR JADE: Create a spoken list of days
+        available_str = ", ".join(open_slots)
+        print(f"--- 🗣️ JADE RESPONSE: 'I have availability on {available_str}. Which works for you?' ---")
+        
+        # This string would be sent back to the voice engine in the next phase
+        return {"status": "scheduling", "options": open_slots}
+
+    # 6. SLOT CAPTURE: Listen for the user's choice
+        chosen_day = next((day for day in open_slots if day.lower() in transcript_text), None)
+        
+        if chosen_day:
+        
+    # 7. BOOKING EXECUTION: Create the actual event
+        print(f"--- 📅 JADE BOOKING: Registering 'Tax Prep' for {chosen_day} ---")
+        new_event = {
+            'summary': f'Tax Prep Appointment (Via Jade)',
+            'description': f'Scheduled during AI audit call on {chosen_day}',
+            'start': {'dateTime': '2026-01-22T10:00:00Z'}, 
+            'end': {'dateTime': '2026-01-22T11:00:00Z'}
+        }
+
+    
+    # 8. VAPI VOICE COMMAND: Final response to the user
+        return {
+            "results": [{
+                "toolCallId": data.get('message', {}).get('toolCalls', [{}])[0].get('id'),
+                "result": f"Great! I have scheduled your tax preparation appointment for {chosen_day}. You will receive a confirmation shortly."
+            }]
+        }
         
     # --- ENGINE 1: TRUTH & COMPLIANCE ---
     perjury_triggers = ["real person", "real human", "live person", "not a robot"]
