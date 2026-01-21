@@ -12,13 +12,32 @@ audit_history = []
 @app.post("/audit-call")
 async def audit_call(request: Request):
     data = await request.json()
-    transcript_text = str(data.get('message', {}).get('transcript', '')).lower()
     
-    # --- HEARTBEAT SKIP ---
-    # Prevents empty logs from generating every second
-    if not transcript_text or transcript_text.strip() == "":
-        return {"status": "skipped", "reason": "no speech detected"}
+    # 1. Identify the status and transcript
+    call_status = data.get('message', {}).get('call', {}).get('status')
+    transcript_text = str(data.get('message', {}).get('transcript', '')).lower()
 
+    # 2. THE GUARD: Skip heartbeats, print final summary on end
+    if not transcript_text or transcript_text.strip() == "":
+        if call_status == "ended":
+            print(f"\n--- 🏁 CALL COMPLETED: FINAL AUDIT REPORT ---")
+            # --- STEP 2: PRINT THE FINAL SUMMARY HERE ---
+            print(f"\n--- 🏁 CALL COMPLETED: FINAL AUDIT REPORT ---")
+            # We will pull the last report from your history for this summary
+            if audit_history:
+                last_report = audit_history[0]
+                print(f"Result: {last_report['emoji']} {'Passed' if last_report['verdict'] == 'PASS' else last_report['verdict']}")
+                print(f"Timestamp: {last_report['timestamp']}")
+                if last_report['risks']:
+                    print(f"⚠️ Risks/Flags Detected: {', '.join(last_report['risks'])}")
+            
+            print("--- DATA PRESERVED FOR TRAINING ---\n")
+            return {"status": "archived"}
+        return {"status": "ignored"}
+        
+    # 3. SESSION GUARD: Only proceed to Engines if the call is still active
+    if call_status == "ended": return {"status": "session_closed"}
+        
     # --- ENGINE 1: TRUTH & COMPLIANCE ---
     perjury_triggers = ["real person", "real human", "live person", "not a robot"]
     lies_detected = []
