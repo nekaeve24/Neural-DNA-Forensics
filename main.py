@@ -14,8 +14,8 @@ async def audit_call(request: Request):
     data = await request.json()
     transcript_text = str(data.get('message', {}).get('transcript', '')).lower()
     
-    if not transcript_text:
-        transcript_text = str(data).lower()
+    if not transcript_text or transcript_text.strip() == "":
+        return {"status": "skipped", "reason": "no speech detected"}
 
     # --- ENGINE 1: TRUTH & COMPLIANCE ---
     perjury_triggers = ["real person", "real human", "live person", "not a robot"]
@@ -67,12 +67,13 @@ async def audit_call(request: Request):
             if trigger in transcript_text:
                 bias_detected.append(f"{category}: {trigger}")
 
-    # Scan for Language (Neutral)
+# Scan for Language (Only trigger on whole words)
     language_detected = []
     for category, triggers in linguistic_triggers.items():
         for trigger in triggers:
-            if trigger in transcript_text:
-                language_detected.append(f"{category}: {trigger}")
+            # This regex ensures we only catch the word, not fragments like "ion" in "action"
+            if re.search(r'\b' + re.escape(trigger) + r'\b', transcript_text):
+                language_detected.append(trigger)
 
     # --- VERDICT LOGIC ---
     status = "PASS" # Default to Green
@@ -172,16 +173,23 @@ async def get_dashboard():
                         else if (log.verdict.includes('Linguistic')) cssClass = 'info';
                         else if (log.verdict.includes('WARN')) cssClass = 'warn';
 
-                        const div = document.createElement('div');
-                        div.className = `card ${cssClass}`;
-                        let tagsHtml = '';
-                        log.bias_engine.bias_flags.forEach(tag => tagsHtml += `<span class="tag" style="color:#ff7b72">${tag}</span>`);
-                        log.bias_engine.language_flags.forEach(tag => tagsHtml += `<span class="tag" style="color:#79c0ff">${tag}</span>`);
+                    const div = document.createElement('div');
+                    div.className = `card ${cssClass}`;
+                    let tagsHtml = '';
+                    // ONLY show tags if it's NOT a standard PASS
+                    if (log.verdict !== "PASS") {
+                        log.bias_engine.bias_flags.forEach(tag => {
+                            tagsHtml += `<span class="tag" style="color:#ff7b72">${tag}</span>`;
+                        });
+                        log.bias_engine.language_flags.forEach(tag => {
+                            tagsHtml += `<span class="tag" style="color:#79c0ff">${tag}</span>`;
+                        });
+                    }
 
-                        div.innerHTML = `
-                            <div class="status">${log.emoji} ${log.verdict} <span style="float:right; font-size:0.8em">${log.timestamp}</span></div>
-                            <div class="meta">Sentiment: ${log.bias_engine.sentiment_score}</div>
-                            <div class="tags">${tagsHtml}</div>
+                    div.innerHTML = `
+                        <div class="status">${log.emoji} ${log.verdict} <span style="float:right; font-size:0.8em">${log.timestamp}</span></div>
+                        <div class="meta">Sentiment: ${log.bias_engine.sentiment_score}</div>
+                        <div class="tags">${tagsHtml}</div>
                         `;
                         container.appendChild(div);
                     });
