@@ -20,9 +20,9 @@ def check_jade_availability():
     now = (datetime.datetime.utcnow() - datetime.timedelta(days=2)).isoformat() + 'Z'
     timeMax = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).isoformat() + 'Z'
     events_result = service.events().list(calendarId=calendarId, timeMin=now, timeMax=timeMax, singleEvents=True, orderBy='startTime').execute()
-                                        timeMin=now,
-                                        maxResults=10, singleEvents=True,
-                                        orderBy='startTime').execute()
+        timeMin=now,
+        maxResults=10, singleEvents=True,
+        orderBy='startTime').execute()
     events = events_result.get('items', [])
 
     # Extract just the dates to give to Jade
