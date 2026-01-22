@@ -10,24 +10,27 @@ from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
 def check_jade_availability():
-    # Load your Google Credentials (we will set this up in Step 2)
-    SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
+    # Full calendar scope for reliable primary calendar access
+    SCOPES = ['https://www.googleapis.com/auth/calendar']
     google_creds_json = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
     creds = service_account.Credentials.from_service_account_info(google_creds_json, scopes=SCOPES)
     service = build('calendar', 'v3', credentials=creds)
 
-    # Get the next 10 upcoming appointments
-    now = (datetime.datetime.utcnow() - datetime.timedelta(days=2)).isoformat() + 'Z'
-    timeMax = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).isoformat() + 'Z'
-    calendarId = 'be944a6b50cab5a5ddc8d3c91f68bf91eb6a399df256e8e829e5545c6f762321@group.calendar.google.com'
+    # Search for the next 14 days to catch all availability
+    now = datetime.datetime.utcnow().isoformat() + 'Z'
+    timeMax = (datetime.datetime.utcnow() + datetime.timedelta(days=14)).isoformat() + 'Z'
+    
+    # Use 'primary' to pull from your main Neka Everett calendar
+    calendarId = 'primary'
+    
     events_result = service.events().list(
-        calendarId=calendarId,
-        timeMin=now,
-        timeMax=timeMax,
-        singleEvents=True,
+        calendarId=calendarId, 
+        timeMin=now, 
+        timeMax=timeMax, 
+        singleEvents=True, 
         orderBy='startTime'
     ).execute()
-
+    
     events = events_result.get('items', [])
     
     # Extract just the dates to give to Jade
