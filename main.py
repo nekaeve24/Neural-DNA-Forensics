@@ -37,8 +37,8 @@ def check_jade_availability():
     if not events:
         return ["No openings today"]
     
-      # This creates a list like ["Monday at 10am", "Tuesday at 2pm"]
-      available_slots = []
+        # This creates a list like ["Monday at 10am", "Tuesday at 2pm"]
+        available_slots = []
     for event in events:
         # Check if this is an availability block
         if "Availability" in event.get('summary', ''):
