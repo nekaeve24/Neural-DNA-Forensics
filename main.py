@@ -17,7 +17,7 @@ def check_jade_availability():
     service = build('calendar', 'v3', credentials=creds)
 
     # Get the next 10 upcoming appointments
-    now = datetime.datetime.utcnow().isoformat() + 'Z'
+    now = (datetime.datetime.utcnow() - datetime.timedelta(days=1)).isoformat() + 'Z'
     events_result = service.events().list(calendarId='be944a6b50cab5a5ddc8d3c91f68bf91eb6a399df256e8e829e5545c6f762321@group.calendar.google.com', 
                                         timeMin=now,
                                         maxResults=10, singleEvents=True,
