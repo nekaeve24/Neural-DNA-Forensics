@@ -1,19 +1,36 @@
 import re
 import os
+import json
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from textblob import TextBlob
-from datetime import datetime
+import datetime
+
+from googleapiclient.discovery import build
+from google.oauth2 import service_account
 
 def check_jade_availability():
-    """
-    Search for 'Jade Availability' blocks on the calendar.
-    In the final version, this will call the Google Calendar API.
-    """
-    # For this step, we are defining the slots Jade can 'see'
-    available_days = ["Wednesday", "Thursday", "Saturday", "Sunday", "Tuesday"]
-    print(f"--- 📅 JADE ENGINE: Syncing availability for {len(available_days)} days ---")
-    return available_days
+    # Load your Google Credentials (we will set this up in Step 2)
+    SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
+    google_creds_json = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
+    creds = service_account.Credentials.from_service_account_info(google_creds_json, scopes=SCOPES)
+    service = build('calendar', 'v3', credentials=creds)
+
+    # Get the next 10 upcoming appointments
+    now = datetime.datetime.utcnow().isoformat() + 'Z'
+    events_result = service.events().list(calendarId='be944a6b50cab5a5ddc8d3c91f68bf91eb6a399df256e8e829e5545c6f762321@group.calendar.google.com', 
+                                        timeMin=now,
+                                        maxResults=10, singleEvents=True,
+                                        orderBy='startTime').execute()
+    events = events_result.get('items', [])
+
+    # Extract just the dates to give to Jade
+    if not events:
+        return ["No openings today"]
+    
+    # This creates a list like ["Monday at 10am", "Tuesday at 2pm"]
+    available_slots = [event['start'].get('dateTime', event['start'].get('date')) for event in events]
+    return available_slots
     
 app = FastAPI()
 
