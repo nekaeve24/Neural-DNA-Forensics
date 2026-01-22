@@ -19,12 +19,17 @@ def check_jade_availability():
     # Get the next 10 upcoming appointments
     now = (datetime.datetime.utcnow() - datetime.timedelta(days=2)).isoformat() + 'Z'
     timeMax = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).isoformat() + 'Z'
-    events_result = service.events().list(calendarId=calendarId, timeMin=now, timeMax=timeMax, singleEvents=True, orderBy='startTime').execute()
-        timeMin=now,
-        maxResults=10, singleEvents=True,
-        orderBy='startTime').execute()
+    calendarId = 'be944a6b50cab5a5ddc8d3c91f68bf91eb6a399df256e8e829e5545c6f762321@group.calendar.google.com'
+    events_result = service.events().list(
+        calendarId=calendarId, 
+        timeMin=now, 
+        timeMax=timeMax, 
+        singleEvents=True, 
+        orderBy='startTime'
+    ).execute()
+    
     events = events_result.get('items', [])
-
+    
     # Extract just the dates to give to Jade
     if not events:
         return ["No openings today"]
