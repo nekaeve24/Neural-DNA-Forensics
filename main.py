@@ -21,13 +21,13 @@ def check_jade_availability():
     timeMax = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).isoformat() + 'Z'
     calendarId = 'be944a6b50cab5a5ddc8d3c91f68bf91eb6a399df256e8e829e5545c6f762321@group.calendar.google.com'
     events_result = service.events().list(
-        calendarId=calendarId, 
-        timeMin=now, 
-        timeMax=timeMax, 
-        singleEvents=True, 
+        calendarId=calendarId,
+        timeMin=now,
+        timeMax=timeMax,
+        singleEvents=True,
         orderBy='startTime'
     ).execute()
-    
+
     events = events_result.get('items', [])
     
     # Extract just the dates to give to Jade
@@ -35,7 +35,12 @@ def check_jade_availability():
         return ["No openings today"]
     
     # This creates a list like ["Monday at 10am", "Tuesday at 2pm"]
-    available_slots = [event['start'].get('dateTime', event['start'].get('date')) for event in events]
+    available_slots = []
+    for event in events:
+        start = event['start'].get('dateTime', event['start'].get('date'))
+        # This converts the technical Google time into "Jan 22 at 10:00 AM"
+        clean_time = datetime.datetime.fromisoformat(start.replace('Z', '+00:00')).strftime('%b %d at %I:%M %p')
+        available_slots.append(clean_time)
     return available_slots
     
 app = FastAPI()
