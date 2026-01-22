@@ -38,13 +38,27 @@ def check_jade_availability():
         return ["No openings today"]
     
     # This creates a list like ["Monday at 10am", "Tuesday at 2pm"]
-    available_slots = []
+  available_slots = []
     for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        # This converts the technical Google time into "Jan 22 at 10:00 AM"
-        clean_time = datetime.datetime.fromisoformat(start.replace('Z', '+00:00')).strftime('%b %d at %I:%M %p')
-        available_slots.append(clean_time)
-    return available_slots
+        # Check if this is an availability block
+        if "Availability" in event.get('summary', ''):
+            start_str = event['start'].get('dateTime')
+            end_str = event['end'].get('dateTime')
+            
+            # Skip if it's an all-day event without specific times
+            if not start_str or not end_str:
+                continue
+
+            start_dt = datetime.datetime.fromisoformat(start_str.replace('Z', '+00:00'))
+            end_dt = datetime.datetime.fromisoformat(end_str.replace('Z', '+00:00'))
+            
+            # Break the big block into 1-hour chunks
+            current_time = start_dt
+            while current_time < end_dt:
+                available_slots.append(current_time.strftime('%b %d at %I:%M %p'))
+                current_time += datetime.timedelta(hours=1)
+                
+    return available_slots if available_slots else ["No specific openings found."]
     
 app = FastAPI()
 
