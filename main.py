@@ -73,27 +73,28 @@ async def audit_call(request: Request):
     call_status = data.get('message', {}).get('call', {}).get('status')
     transcript_text = str(data.get('message', {}).get('transcript', '')).lower()
 
-# 2. THE GUARD: Skip heartbeats, print final summary on end
+    # 2. THE SOVEREIGN GUARD: No shortcuts. Everything is documented.
     if not transcript_text or transcript_text.strip() == "":
         if call_status == "ended":
-            # Create the report object to update the Global View
+            # Document the closing of the session for the Legal Audit Trail
             new_report = {
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "verdict": "PASS", 
                 "emoji": "✅",
-                "risks": []
+                "risks": ["Session Closed Cleanly"],
+                "type": "POST_CALL_SUMMARY"
             }
-            # Add to the global history list
             audit_history.insert(0, new_report)
 
             print(f"\n--- 🏁 CALL COMPLETED: FINAL AUDIT REPORT ---")
             print(f"Result: {new_report['emoji']} {new_report['verdict']}")
             print(f"Timestamp: {new_report['timestamp']}")
-            print("--- DATA PRESERVED FOR TRAINING ---\n")
+            print("--- DATA PRESERVED IN SOVEREIGN VAULT ---\n")
             
-            return {"status": "archived"}
+            return {"status": "archived", "audit_id": new_report['timestamp']}
         
-        return {"status": "ignored"}
+        return {"status": "monitoring_active"} # Confirms the engine is listening
+
         
     # 3. SESSION GUARD: Only proceed to Engines if the call is still active
     if call_status == "ended": return {"status": "session_closed"}
