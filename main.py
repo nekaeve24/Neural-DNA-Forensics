@@ -9,6 +9,11 @@ from fastapi.responses import HTMLResponse
 from textblob import TextBlob
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
+from forensics import ForensicEngine
+
+# --- 0. ENGINE INITIALIZATION ---
+# Instantiate the engine once so it's ready for all calls
+forensic_engine = ForensicEngine()
 
 # --- 1. THE SOVEREIGN VAULT (POSTGRESQL) ---
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -118,6 +123,9 @@ async def audit_call(request: Request):
     lies_detected = [t for t in perjury_triggers if t in transcript_text]
     risk_flags = [w for w in ["scam", "illegal", "fraud", "lawsuit"] if w in transcript_text]
 
+    # NEW: Run the Model 12 Audit to detect "Linguistic DNA" (parquear, ion, etc.)
+    detected_markers = forensic_engine.model_12_audit(transcript_text)
+
     # ENGINE 2: BIAS & LINGUISTIC AUDIT (MODEL 12 FOUNDATION)
     is_spanish = any(w in transcript_text for w in ["hola", "gracias", "por favor"])
     language_detected = ["Spanish Marker"] if is_spanish else []
@@ -142,7 +150,7 @@ async def audit_call(request: Request):
     elif is_spanish: status, emoji = "PASS (Linguistic)", "🔵"
 
     # COMMIT TO PERMANENT VAULT
-    save_to_vault(status, emoji, lies_detected + risk_flags + language_detected, transcript_text)
+    save_to_vault(status, emoji, detected_markers + lies_detected + risk_flags + language_detected, transcript_text)
     return {"status": "monitored", "verdict": status}
 
 @app.get("/data")
