@@ -2,177 +2,157 @@ import re
 import os
 import json
 import datetime
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from textblob import TextBlob
-
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
-def check_jade_availability():
-    # Full calendar scope for reliable primary calendar access
-    SCOPES = ['https://www.googleapis.com/auth/calendar']
-    google_creds_json = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
-    creds = service_account.Credentials.from_service_account_info(google_creds_json, scopes=SCOPES)
-    service = build('calendar', 'v3', credentials=creds)
+# --- 1. THE SOVEREIGN VAULT (POSTGRESQL) ---
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-    now = datetime.datetime.utcnow().isoformat() + 'Z'
-    timeMax = (datetime.datetime.utcnow() + datetime.timedelta(days=14)).isoformat() + 'Z'
-    
-    calendarId = 'primary'
-    
-    events_result = service.events().list(
-        calendarId=calendarId, 
-        timeMin=now, 
-        timeMax=timeMax, 
-        singleEvents=True, 
-        orderBy='startTime'
-    ).execute()
-    
-    events = events_result.get('items', [])
-    available_slots = [] # FIXED: Moved out of the 'if not events' block
+def get_db_connection():
+    return psycopg2.connect(DATABASE_URL, sslmode='require')
 
-    if not events:
-        return ["No openings today"]
-    
-    for event in events:
-        if "Availability" in event.get('summary', ''):
-            start_str = event['start'].get('dateTime')
-            end_str = event['end'].get('dateTime')
-            
-            if not start_str or not end_str:
-                continue
+def init_db():
+    """Initializes the Permanent Audit Ledger for Institutional Traceability"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS sovereign_vault (
+                id SERIAL PRIMARY KEY,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                verdict TEXT,
+                emoji TEXT,
+                risks TEXT[],
+                transcript TEXT
+            );
+        """)
+        conn.commit()
+        cur.close()
+    finally:
+        if conn: conn.close()
 
-            start_dt = datetime.datetime.fromisoformat(start_str.replace('Z', '+00:00'))
-            end_dt = datetime.datetime.fromisoformat(end_str.replace('Z', '+00:00'))
-            
-            current_time = start_dt
-            while current_time < end_dt:
-                available_slots.append(current_time.strftime('%b %d at %I:%M %p'))
-                current_time += datetime.timedelta(hours=1)
-                
-    return available_slots if available_slots else ["No specific openings found."]
+# --- 2. JADE 12-NODE DISPATCHER CONFIG ---
+# Populate these with your 12 unique Google Calendar IDs
+JADE_NODES = {
+    "tier_1_2": ["jade_1_id", "jade_2_id", "jade_3_id", "jade_4_id"], 
+    "tier_3_4": ["jade_5_id", "jade_6_id", "jade_7_id", "jade_8_id"], 
+    "tier_5_6": ["jade_9_id", "jade_10_id", "jade_11_id"],           
+    "spanish": ["jade_12_id"] 
+}
 
+# --- 3. APP INITIALIZATION ---
 app = FastAPI()
-audit_history = []
+init_db()
 
+def save_to_vault(verdict, emoji, risks, transcript):
+    """Writing all NEnterprise interactions to the Permanent Ledger"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO sovereign_vault (verdict, emoji, risks, transcript) VALUES (%s, %s, %s, %s)",
+            (verdict, emoji, risks, transcript)
+        )
+        conn.commit()
+        cur.close()
+    except Exception as e:
+        print(f"⚖️ VAULT ERROR: {e}")
+    finally:
+        if conn: conn.close()
+
+def check_jade_availability(calendar_id='primary'):
+    """Queries specific JADE Nodes for openings"""
+    SCOPES = ['https://www.googleapis.com/auth/calendar']
+    try:
+        google_creds_json = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
+        creds = service_account.Credentials.from_service_account_info(google_creds_json, scopes=SCOPES)
+        service = build('calendar', 'v3', credentials=creds)
+
+        now = datetime.datetime.utcnow().isoformat() + 'Z'
+        timeMax = (datetime.datetime.utcnow() + datetime.timedelta(days=14)).isoformat() + 'Z'
+        
+        events_result = service.events().list(
+            calendarId=calendar_id, timeMin=now, timeMax=timeMax, 
+            singleEvents=True, orderBy='startTime'
+        ).execute()
+        
+        events = events_result.get('items', [])
+        available_slots = []
+        for event in events:
+            if "Availability" in event.get('summary', ''):
+                start_str = event['start'].get('dateTime')
+                if not start_str: continue
+                start_dt = datetime.datetime.fromisoformat(start_str.replace('Z', '+00:00'))
+                available_slots.append(start_dt.strftime('%b %d at %I:%M %p'))
+        return available_slots
+    except Exception: return []
+
+# --- 4. THE CORE FORENSIC & DISPATCH ENGINE ---
 @app.post("/audit-call")
 async def audit_call(request: Request):
-    global audit_history
     data = await request.json()
-    
     call_status = data.get('message', {}).get('call', {}).get('status')
     transcript_text = str(data.get('message', {}).get('transcript', '')).lower()
 
-    # 2. THE SOVEREIGN GUARD: No shortcuts. Everything is documented.
-    if not transcript_text or transcript_text.strip() == "":
+    # SOVEREIGN GUARD: End-of-Session Integrity
+    if not transcript_text.strip():
         if call_status == "ended":
-            new_report = {
-                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "verdict": "PASS", 
-                "emoji": "✅",
-                "risks": ["Session Closed Cleanly"],
-                "type": "POST_CALL_SUMMARY"
-            }
-            audit_history.insert(0, new_report)
+            save_to_vault("PASS", "✅", ["Session Closed Cleanly"], "Heartbeat Only")
+            return {"status": "archived"}
+        return {"status": "monitoring_active"}
 
-            print(f"\n--- 🏁 CALL COMPLETED: FINAL AUDIT REPORT ---")
-            print(f"Result: {new_report['emoji']} {new_report['verdict']}")
-            print(f"Timestamp: {new_report['timestamp']}")
-            print("--- DATA PRESERVED IN SOVEREIGN VAULT ---\n")
-            
-            return {"status": "archived", "audit_id": new_report['timestamp']}
-        
-        return {"status": "monitoring_active"} 
-
-    # 3. SESSION GUARD: Only proceed if active
-    if call_status == "ended": 
-        return {"status": "session_closed"}
-
-    # 4. SCHEDULING TRIGGER
-    scheduling_keywords = ["schedule", "appointment", "available", "calendar"]
-    if any(key in transcript_text for key in scheduling_keywords):
-        open_slots = check_jade_availability()
-        available_str = ", ".join(open_slots)
-        
-        # Tool response for Vapi
-        return {"status": "scheduling", "options": open_slots}
-
-    # 6. SLOT CAPTURE & BOOKING
-    # Note: For production, we'd iterate through open_slots to match transcript_text
-    # But first, we handle the forensic analysis for the Global View
-       
-    # --- ENGINE 1: TRUTH & COMPLIANCE ---
-    perjury_triggers = ["real person", "real human", "live person", "not a robot"]
-    lies_detected = []
-    
-    for trigger in perjury_triggers:
-        if trigger in transcript_text:
-            start_index = transcript_text.find(trigger)
-            context_window = transcript_text[max(0, start_index - 30):start_index]
-            if "not" in context_window or "ai" in context_window:
-                continue 
-            lies_detected.append(trigger)
-
-    risk_keywords = ["scam", "illegal", "fraud", "stop calling", "lawsuit", "police"]
-    risk_flags = [word for word in risk_keywords if word in transcript_text]
-
-    # --- ENGINE 2: THE BIAS & LINGUISTIC AUDIT (Model 12) ---
+    # ENGINE 1: TRUTH, COMPLIANCE & COMPLEXITY TRIAGE
     blob = TextBlob(transcript_text)
-    sentiment_score = blob.sentiment.polarity 
+    complexity_score = sum(2 for word in ["business", "rental", "k-1", "audit", "offshore"] if word in transcript_text)
+    if blob.sentiment.polarity < -0.3: complexity_score += 2 # Stress escalation
     
-    bias_triggers = {
-        "gender_bias": ["female doctor", "male nurse", "man's job", "woman's job"],
-        "cultural_bias": ["those people", "foreigners", "illegal alien"]
-    }
-
-    linguistic_triggers = {
-        "language_spanish": ["hola", "gracias", "por favor"],
-        "language_aave": ["finna", "ion", "no cap", "on god"]
-    }
+    tier = max(1, min(6, complexity_score))
     
-    bias_detected = []
-    for category, triggers in bias_triggers.items():
-        for trigger in triggers:
-            if trigger in transcript_text:
-                bias_detected.append(f"{category}: {trigger}")
+    perjury_triggers = ["real person", "real human", "live person", "not a robot"]
+    lies_detected = [t for t in perjury_triggers if t in transcript_text]
+    risk_flags = [w for w in ["scam", "illegal", "fraud", "lawsuit"] if w in transcript_text]
 
-    language_detected = []
-    for category, triggers in linguistic_triggers.items():
-        for trigger in triggers:
-            if re.search(r'\b' + re.escape(trigger) + r'\b', transcript_text):
-                language_detected.append(trigger)
+    # ENGINE 2: BIAS & LINGUISTIC AUDIT (MODEL 12 FOUNDATION)
+    is_spanish = any(w in transcript_text for w in ["hola", "gracias", "por favor"])
+    language_detected = ["Spanish Marker"] if is_spanish else []
+    
+    # SCHEDULING TRIGGER: Multi-Node J.A.D.E. Dispatch
+    if any(k in transcript_text for k in ["schedule", "appointment", "calendar"]):
+        targets = JADE_NODES["spanish"] if is_spanish else (
+            JADE_NODES["tier_1_2"] if tier <= 2 else (
+            JADE_NODES["tier_3_4"] if tier <= 4 else JADE_NODES["tier_5_6"])
+        )
+        for node_id in targets:
+            slots = check_jade_availability(node_id)
+            if slots:
+                save_to_vault("DISPATCH", "📡", [f"Tier {tier} Routing", f"Node: {node_id}"], transcript_text)
+                return {"status": "scheduling", "options": slots}
 
-    # --- VERDICT LOGIC ---
+    # VERDICT LOGIC
     status = "PASS"
-    if lies_detected: status = "CRITICAL FAIL (Lying)"
-    elif bias_detected: status = "FAIL (Bias Detected)"
-    elif sentiment_score < -0.5: status = "FAIL (Hostile Tone)"
-    elif risk_flags: status = "WARN (Risk Flags)"
-    elif language_detected: status = "PASS (Linguistic Marker Detected)"
-
     emoji = "🟢"
-    if "FAIL" in status: emoji = "🔴"
-    elif "WARN" in status: emoji = "🟠"
-    elif "Linguistic" in status: emoji = "🔵"
+    if lies_detected: status, emoji = "CRITICAL FAIL (Lying)", "🔴"
+    elif risk_flags: status, emoji = "WARN (Risk Flags)", "🟠"
+    elif is_spanish: status, emoji = "PASS (Linguistic)", "🔵"
 
-    report = {
-        "emoji": emoji,
-        "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
-        "verdict": status,
-        "risks": lies_detected + risk_flags + bias_detected + language_detected
-    }
-
-    audit_history.insert(0, report)
-    if len(audit_history) > 20: audit_history.pop()
-
-    return report
+    # COMMIT TO PERMANENT VAULT
+    save_to_vault(status, emoji, lies_detected + risk_flags + language_detected, transcript_text)
+    return {"status": "monitored", "verdict": status}
 
 @app.get("/data")
 async def get_data():
-    return audit_history
-
-@app.get("/", response_class=HTMLResponse)
-async def get_dashboard():
-    # Dashboard code remains the same as your functional original
-    pass
+    """Feeds the Dashboard with Persistent History from the Vault"""
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute("SELECT emoji, verdict, timestamp, risks FROM sovereign_vault ORDER BY timestamp DESC LIMIT 20")
+    logs = cur.fetchall()
+    cur.close()
+    conn.close()
+    return logs
