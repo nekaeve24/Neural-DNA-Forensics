@@ -17,10 +17,15 @@ forensic_engine = ForensicEngine()
 
 # --- 1. THE SOVEREIGN VAULT (POSTGRESQL) ---
 DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Fix for the 'postgres://' vs 'postgresql://' protocol mismatch
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 def get_db_connection():
+    # If DATABASE_URL is None, psycopg2 defaults to local socket (causing your crash)
+    if not DATABASE_URL:
+        raise ValueError("DATABASE_URL environment variable is missing!")
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
 def init_db():
