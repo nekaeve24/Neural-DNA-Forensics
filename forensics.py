@@ -8,8 +8,9 @@ class ForensicEngine:
     def model_12_audit(self, text):
         """Identifies Cultural Identity Markers (Linguistic Sovereignty)"""
         linguistic_triggers = {
-            "spanish": ["hola", "gracias", "por favor", "que pasa"],
-            "aave": ["finna", "ion", "trippin", "no cap", "bet"]
+            "spanish": ["hola", "gracias", "por favor", "que pasa", "parquear"],
+            "aave": ["finna", "ion", "trippin", "no cap", "bet"],
+            "intent": ["real person", "not a robot"]
         }
         detected = []
         for cat, triggers in linguistic_triggers.items():
