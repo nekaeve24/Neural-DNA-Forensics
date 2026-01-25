@@ -37,13 +37,12 @@ def init_db():
     finally:
         if conn: conn.close()
 
-# --- 2. JADE 12-NODE DISPATCHER CONFIG ---
-# Populate these with your 12 unique Google Calendar IDs
+# --- 2. JADE 1NODE DISPATCHER CONFIG (TESTING ONLY) ---
 JADE_NODES = {
-    "tier_1_2": ["jade_1_id", "jade_2_id", "jade_3_id", "jade_4_id"], 
-    "tier_3_4": ["jade_5_id", "jade_6_id", "jade_7_id", "jade_8_id"], 
-    "tier_5_6": ["jade_9_id", "jade_10_id", "jade_11_id"],           
-    "spanish": ["jade_12_id"] 
+    "tier_1_2": ["primary"], 
+    "tier_3_4": ["primary"], 
+    "tier_5_6": ["primary"],           
+    "spanish": ["primary"] 
 }
 
 # --- 3. APP INITIALIZATION ---
