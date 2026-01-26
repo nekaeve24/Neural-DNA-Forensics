@@ -217,7 +217,7 @@ async def audit_call(request: Request):
 
     # ACTUATION TRIGGER: Commits the appointment to Google Calendar
     if "got you down" in transcript_text or "appointment confirmed" in transcript_text:
-        time_match = re.search(r'(\d+[:\d+]*\s*[ap]\.?m\.?)', transcript_text)
+        time_match = re.search(r'(\d+).*?(\d+[:\d+]*\s*[ap]\.?\s*[m]\.?)', transcript_text)
         if time_match:
             booking_time = time_match.group(1)
             calendar_link = create_calendar_event(JADE1_ID, booking_time)
