@@ -137,7 +137,7 @@ def check_jade_availability(calendar_id='primary'):
         today_header = est_now.strftime("Today is %A, %B %d, %Y. Current time is %I:%M %p EST.")
         return [today_header] + available_slots
 
-        except Exception as e: 
+    except Exception as e: 
         print(f"📡 SCHEDULING ERROR: {e}")
         return []
 
