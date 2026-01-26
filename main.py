@@ -12,8 +12,17 @@ from google.oauth2 import service_account
 from forensics import ForensicEngine
 
 # --- 0. ENGINE INITIALIZATION ---
-# Instantiate the engine once so it's ready for all calls
 forensic_engine = ForensicEngine()
+
+def is_within_office_hours(dt):
+    """Tier 1: Hardwired Base Availability Gate"""
+    # Monday (0) to Saturday (5): 9:00 AM - 8:00 PM
+    if 0 <= dt.weekday() <= 5:
+        return 9 <= dt.hour < 20
+    # Sunday (6): 12:00 PM - 4:00 PM
+    if dt.weekday() == 6:
+        return 12 <= dt.hour < 16
+    return False
 
 # --- 1. THE SOVEREIGN VAULT (POSTGRESQL) ---
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -78,31 +87,55 @@ def save_to_vault(verdict, emoji, risks, transcript):
         if conn: conn.close()
 
 def check_jade_availability(calendar_id='primary'):
-    """Queries specific JADE Nodes for openings"""
+    """Queries JADE Nodes using 3-Tier Logic (Empty Space Detection)"""
     SCOPES = ['https://www.googleapis.com/auth/calendar']
     try:
         google_creds_json = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
         creds = service_account.Credentials.from_service_account_info(google_creds_json, scopes=SCOPES)
         service = build('calendar', 'v3', credentials=creds)
 
-        now = datetime.datetime.utcnow().isoformat() + 'Z'
-        timeMax = (datetime.datetime.utcnow() + datetime.timedelta(days=14)).isoformat() + 'Z'
+        # Set search window: Now until 7 days out
+        now_dt = datetime.datetime.utcnow()
+        timeMin = now_dt.isoformat() + 'Z'
+        timeMax = (now_dt + datetime.timedelta(days=7)).isoformat() + 'Z'
         
+        # Tier 3: Get all existing busy appointments
         events_result = service.events().list(
-            calendarId=calendar_id, timeMin=now, timeMax=timeMax, 
+            calendarId=calendar_id, timeMin=timeMin, timeMax=timeMax, 
             singleEvents=True, orderBy='startTime'
         ).execute()
-        
-        events = events_result.get('items', [])
+        busy_events = events_result.get('items', [])
+
         available_slots = []
-        for event in events:
-            if "Availability" in event.get('summary', ''):
-                start_str = event['start'].get('dateTime')
-                if not start_str: continue
-                start_dt = datetime.datetime.fromisoformat(start_str.replace('Z', '+00:00'))
-                available_slots.append(start_dt.strftime('%b %d at %I:%M %p'))
+        # Generate 30-minute test slots for the next 7 days
+        for day in range(7):
+            for hour in range(9, 21):  # Covers the widest possible window (9am-8pm)
+                for minute in [0, 30]:
+                    test_dt = (now_dt + datetime.timedelta(days=day)).replace(hour=hour, minute=minute, second=0, microsecond=0)
+                    
+                    # TIER 1: Check Hardwired Office Hours (Includes New Sunday 12-4)
+                    if is_within_office_hours(test_dt):
+                        
+                        # TIER 3: Check for Conflicts (Is this slot already booked?)
+                        is_busy = False
+                        for event in busy_events:
+                            start = event['start'].get('dateTime', event['start'].get('date'))
+                            end = event['end'].get('dateTime', event['end'].get('date'))
+                            ev_start = datetime.datetime.fromisoformat(start.replace('Z', '+00:00')).replace(tzinfo=None)
+                            ev_end = datetime.datetime.fromisoformat(end.replace('Z', '+00:00')).replace(tzinfo=None)
+                            
+                            if ev_start <= test_dt < ev_end:
+                                is_busy = True
+                                break
+                        
+                        if not is_busy:
+                            available_slots.append(test_dt.strftime('%b %d at %I:%M %p'))
+                            if len(available_slots) >= 5: return available_slots # Return first 5 openings
+
         return available_slots
-    except Exception: return []
+    except Exception as e: 
+        print(f"📡 SCHEDULING ERROR: {e}")
+        return []
 
 # --- 4. THE CORE FORENSIC & DISPATCH ENGINE ---
 @app.post("/audit-call")
