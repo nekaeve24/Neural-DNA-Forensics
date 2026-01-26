@@ -192,13 +192,42 @@ async def audit_call(request: Request):
     save_to_vault(status, emoji, detected_markers + lies_detected + risk_flags + language_detected, transcript_text)
     return {"status": "monitored", "verdict": status}
 
-@app.get("/data")
-async def get_data():
-    """Feeds the Dashboard with Persistent History from the Vault"""
+@app.get("/data", response_class=HTMLResponse)
+async def get_dashboard():
+    """Renders the Sovereign Vault as a professional audit ledger"""
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute("SELECT emoji, verdict, timestamp, risks FROM sovereign_vault ORDER BY timestamp DESC LIMIT 20")
+    cur.execute("SELECT emoji, verdict, timestamp, risks FROM sovereign_vault ORDER BY timestamp DESC LIMIT 50")
     logs = cur.fetchall()
     cur.close()
     conn.close()
-    return logs
+
+    # Simple embedded HTML for the professional look
+    rows = "".join([f"""
+        <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 12px;">{log['emoji']}</td>
+            <td style="padding: 12px; font-weight: bold;">{log['verdict']}</td>
+            <td style="padding: 12px; color: #666;">{log['timestamp']}</td>
+            <td style="padding: 12px;">{", ".join(log['risks'])}</td>
+        </tr>
+    """ for log in logs])
+
+    return f"""
+    <html>
+        <head><title>Sovereign Vault | NEnterprise</title></head>
+        <body style="font-family: sans-serif; padding: 40px; background: #f9f9f9;">
+            <h1 style="color: #333;">Sovereign Vault Audit Ledger</h1>
+            <table style="width: 100%; background: white; border-collapse: collapse; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                <thead style="background: #333; color: white;">
+                    <tr>
+                        <th style="padding: 12px; text-align: left;">S</th>
+                        <th style="padding: 12px; text-align: left;">Verdict</th>
+                        <th style="padding: 12px; text-align: left;">Timestamp</th>
+                        <th style="padding: 12px; text-align: left;">Risks Detected</th>
+                    </tr>
+                </thead>
+                <tbody>{rows}</tbody>
+            </table>
+        </body>
+    </html>
+    """
