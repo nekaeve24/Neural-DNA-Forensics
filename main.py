@@ -128,13 +128,17 @@ def check_jade_availability(calendar_id='primary'):
                                 is_busy = True
                                 break
 
+                        if not is_busy:
+                            available_slots.append(test_dt.strftime("%a, %b %d at %I:%M %p"))
+
         # Add a header that tells J.A.D.E. exactly what today is in EST
         est_now = datetime.datetime.now()
         today_header = est_now.strftime("Today is %A, %B %d, %Y. Current time is %I:%M %p EST.")
         return [today_header] + available_slots
-        except Exception as e: 
-            print(f"📡 SCHEDULING ERROR: {e}")
-            return []
+
+    except Exception as e: 
+        print(f"📡 SCHEDULING ERROR: {e}")
+        return []
 
 def create_calendar_event(calendar_id, start_time_str):
     """Tier 3 Actuation: Commits the appointment to the Sovereign Ledger"""
@@ -204,20 +208,17 @@ async def audit_call(request: Request):
             slots = check_jade_availability(node_id)
             if slots:
                 # NEW: Calculate the range to give J.A.D.E context
-                # This assumes slots are sorted. It finds the first and last time for the requested day.
-                start_time = slots[0].split(" at ")[1]
-                end_time = "4:00 PM" if "Sun" in slots[0] else "8:00 PM" # Tier 1 hardwire context                
-                summary = f"Total availability for this day is from {start_time} to {end_time}. Individual slots: {', '.join(slots)}"
+                start_time = slots[1].split(" at ")[1] if len(slots) > 1 else "9:00 AM"
+                end_time = "4:00 PM" if "Sun" in slots[1] else "8:00 PM"               
+                summary = f"Total availability for this day is from {start_time} to {end_time}. Individual slots: {', '.join(slots[1:])}"
                 save_to_vault("DISPATCH", "📡", [f"Tier {tier} Routing", f"Range: {start_time}-{end_time}"], transcript_text)
                 return {"status": "scheduling", "options": slots, "availability_summary": summary}
 
     # ACTUATION TRIGGER: Commits the appointment to Google Calendar
     if "got you down" in transcript_text or "appointment confirmed" in transcript_text:
-        # Search the transcript for the date and time format
         time_match = re.search(r'(\w+, \w+ \d+ at \d+:\d+ [ap]m)', transcript_text)
         if time_match:
             booking_time = time_match.group(1)
-            # Sends the write command to the Google Calendar API
             calendar_link = create_calendar_event(JADE1_ID, booking_time)
             if calendar_link:
                 save_to_vault("ACTUATION", "📅", ["Calendar Write Success"], f"Booked: {booking_time}")
