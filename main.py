@@ -131,8 +131,9 @@ def check_jade_availability(calendar_id='primary'):
                         if not is_busy:
                             available_slots.append(test_dt.strftime("%a, %b %d at %I:%M %p"))
 
-        # Add a header that tells J.A.D.E. exactly what today is in EST
-        est_now = datetime.datetime.now()
+        # Force the server to use EST for the J.A.D.E. header
+        from datetime import datetime, timedelta, timezone
+        est_now = datetime.now(timezone(timedelta(hours=-5))) 
         today_header = est_now.strftime("Today is %A, %B %d, %Y. Current time is %I:%M %p EST.")
         return [today_header] + available_slots
 
