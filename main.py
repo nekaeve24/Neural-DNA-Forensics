@@ -157,7 +157,7 @@ def create_calendar_event(calendar_id, start_time_str):
             'summary': 'H&R Block Consultation | JADE1',
             'description': 'Automated booking via NEnterprise Sovereign Guard.',
             'start': {'dateTime': dt.isoformat(), 'timeZone': 'UTC'},
-            'end': {'dateTime': (dt + datetime.timedelta(minutes=15)).isoformat(), 'timeZone': 'UTC'},
+            'end': {'dateTime': (dt + datetime.timedelta(hours=1)).isoformat(), 'timeZone': 'UTC'}
         }
 
         event_result = service.events().insert(calendarId=calendar_id, body=event).execute()
@@ -217,7 +217,7 @@ async def audit_call(request: Request):
 
     # ACTUATION TRIGGER: Commits the appointment to Google Calendar
     if "got you down" in transcript_text or "appointment confirmed" in transcript_text:
-        time_match = re.search(r'(\w+, \w+ \d+ at \d+:\d+ [ap]m)', transcript_text)
+        time_match = re.search(r'(\d+[:\d+]*\s*[ap]\.?m\.?)', transcript_text)
         if time_match:
             booking_time = time_match.group(1)
             calendar_link = create_calendar_event(JADE1_ID, booking_time)
