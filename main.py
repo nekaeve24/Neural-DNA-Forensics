@@ -17,13 +17,10 @@ forensic_engine = ForensicEngine()
 
 # --- 1. THE SOVEREIGN VAULT (POSTGRESQL) ---
 DATABASE_URL = os.getenv("DATABASE_URL")
-
-# Fix for the 'postgres://' vs 'postgresql://' protocol mismatch
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 def get_db_connection():
-    # If DATABASE_URL is None, psycopg2 defaults to local socket (causing your crash)
     if not DATABASE_URL:
         raise ValueError("DATABASE_URL environment variable is missing!")
     return psycopg2.connect(DATABASE_URL, sslmode='require')
@@ -50,11 +47,13 @@ def init_db():
         if conn: conn.close()
 
 # --- 2. JADE 1NODE DISPATCHER CONFIG (TESTING ONLY) ---
+JADE1_ID = "be944a6b50cab5a5ddc8d3c91f68bf91eb6a399df256e8e829e5545c6f762321%40group.calendar.google.com"
+
 JADE_NODES = {
-    "tier_1_2": ["primary"], 
-    "tier_3_4": ["primary"], 
-    "tier_5_6": ["primary"],           
-    "spanish": ["primary"] 
+    "tier_1_2": [JADE1_ID], 
+    "tier_3_4": [JADE1_ID], 
+    "tier_5_6": [JADE1_ID],           
+    "spanish": [JADE1_ID] 
 }
 
 # --- 3. APP INITIALIZATION ---
