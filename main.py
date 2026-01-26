@@ -1,3 +1,5 @@
+import datetime
+from datetime import datetime, timedelta, timezone
 import re
 import os
 import json
@@ -114,7 +116,6 @@ def check_jade_availability(calendar_id='primary'):
                     test_dt = (now_dt + datetime.timedelta(days=day)).replace(hour=hour, minute=minute, second=0, microsecond=0)
 
                     # TIER 0: Time-Travel Prevention
-                    # Only consider slots at least 15 minutes in the future
                     if test_dt < (now_dt + datetime.timedelta(minutes=15)):
                         continue
                         
