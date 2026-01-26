@@ -1,10 +1,9 @@
-import datetime, timedelta, timezone
 import re
 import os
 import json
 import datetime
 import psycopg2
-from datetime
+from datetime import datetime, timedelta, timezone
 from psycopg2.extras import RealDictCursor
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -113,7 +112,7 @@ def check_jade_availability(calendar_id='primary'):
         for day in range(7):
             for hour in range(9, 21):  # Covers the widest possible window (9am-8pm)
                 for minute in [0, 30]:
-                    test_dt = (now_dt + datetime.timedelta(days=day)).replace(hour=hour, minute=minute, second=0, microsecond=0)
+                    test_dt = (now_dt + timedelta(days=day)).replace(hour=hour, minute=minute, second=0, microsecond=0)
 
                     # TIER 0: Time-Travel Prevention
                     if test_dt < (now_dt + timedelta(minutes=15)):
