@@ -129,7 +129,7 @@ def check_jade_availability(calendar_id='primary'):
                                 is_busy = True
                                 break
                                 
-                           if not is_busy:
+                            if not is_busy:
                                 available_slots.append(test_dt.strftime("%a, %b %d at %I:%M %p"))
 
         # Force the server to use EST for the J.A.D.E. header
