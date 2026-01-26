@@ -56,7 +56,7 @@ def init_db():
         if conn: conn.close()
 
 # --- 2. JADE 1NODE DISPATCHER CONFIG (TESTING ONLY) ---
-JADE1_ID = "be944a6b50cab5a5ddc8d3c91f68bf91eb6a399df256e8e829e5545c6f762321%40group.calendar.google.com"
+JADE1_ID = "be944a6b50cab5a5ddc8d3c91f68bf91eb6a399df256e8e829e5545c6f762321@group.calendar.google.com"
 
 JADE_NODES = {
     "tier_1_2": [JADE1_ID], 
@@ -137,6 +137,31 @@ def check_jade_availability(calendar_id='primary'):
         print(f"📡 SCHEDULING ERROR: {e}")
         return []
 
+def create_calendar_event(calendar_id, start_time_str):
+    """Tier 3 Actuation: Commits the appointment to the Sovereign Ledger"""
+    SCOPES = ['https://www.googleapis.com/auth/calendar']
+    try:
+        google_creds_json = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
+        creds = service_account.Credentials.from_service_account_info(google_creds_json, scopes=SCOPES)
+        service = build('calendar', 'v3', credentials=creds)
+
+        # Parse the time string JADE sends back (e.g., "Feb 01 at 02:00 PM")
+        current_year = datetime.datetime.now().year
+        dt = datetime.datetime.strptime(f"{start_time_str} {current_year}", "%b %d at %I:%M %p %Y")
+        
+        event = {
+            'summary': 'H&R Block Consultation | JADE1',
+            'description': 'Automated booking via NEnterprise Sovereign Guard.',
+            'start': {'dateTime': dt.isoformat(), 'timeZone': 'UTC'},
+            'end': {'dateTime': (dt + datetime.timedelta(minutes=15)).isoformat(), 'timeZone': 'UTC'},
+        }
+
+        event_result = service.events().insert(calendarId=calendar_id, body=event).execute()
+        return event_result.get('htmlLink')
+    except Exception as e:
+        print(f"📡 BOOKING ERROR: {e}")
+        return None
+
 # --- 4. THE CORE FORENSIC & DISPATCH ENGINE ---
 @app.post("/audit-call")
 async def audit_call(request: Request):
@@ -158,8 +183,9 @@ async def audit_call(request: Request):
     
     tier = max(1, min(6, complexity_score))
     
+    # TIGHTENED FORENSIC AUDIT: Only triggers on specific user-initiated strings
     perjury_triggers = ["real person", "real human", "live person", "not a robot"]
-    lies_detected = [t for t in perjury_triggers if t in transcript_text]
+    lies_detected = [t for t in perjury_triggers if t in transcript_text and "i am an ai" not in transcript_text]
     risk_flags = [w for w in ["scam", "illegal", "fraud", "lawsuit"] if w in transcript_text]
 
     # NEW: Run the Model 12 Audit to detect "Linguistic DNA" (parquear, ion, etc.)
@@ -181,12 +207,22 @@ async def audit_call(request: Request):
                 # NEW: Calculate the range to give J.A.D.E context
                 # This assumes slots are sorted. It finds the first and last time for the requested day.
                 start_time = slots[0].split(" at ")[1]
-                end_time = "4:00 PM" if "Sun" in slots[0] else "8:00 PM" # Tier 1 hardwire context
-                
+                end_time = "4:00 PM" if "Sun" in slots[0] else "8:00 PM" # Tier 1 hardwire context                
                 summary = f"Total availability for this day is from {start_time} to {end_time}. Individual slots: {', '.join(slots)}"
-                
                 save_to_vault("DISPATCH", "📡", [f"Tier {tier} Routing", f"Range: {start_time}-{end_time}"], transcript_text)
                 return {"status": "scheduling", "options": slots, "availability_summary": summary}
+
+    # ACTUATION TRIGGER: Commits the appointment to Google Calendar
+    if "got you down" in transcript_text or "appointment confirmed" in transcript_text:
+        # Search the transcript for the date and time format
+        time_match = re.search(r'(\w+, \w+ \d+ at \d+:\d+ [ap]m)', transcript_text)
+        if time_match:
+            booking_time = time_match.group(1)
+            # Sends the write command to the Google Calendar API
+            calendar_link = create_calendar_event(JADE1_ID, booking_time)
+            if calendar_link:
+                save_to_vault("ACTUATION", "📅", ["Calendar Write Success"], f"Booked: {booking_time}")
+                return {"status": "booked", "link": calendar_link}
                 
     # VERDICT LOGIC
     status = "PASS"
