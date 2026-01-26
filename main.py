@@ -122,15 +122,15 @@ def check_jade_availability(calendar_id='primary'):
                             start = event['start'].get('dateTime', event['start'].get('date'))
                             end = event['end'].get('dateTime', event['end'].get('date'))
                             ev_start = datetime.datetime.fromisoformat(start.replace('Z', '+00:00')).replace(tzinfo=None)
+                            ev_end = datetime.datetime.fromisoformat(end.replace('Z', '+00:00')).replace(tzinfo=None)
                             
-                            # Validates that the entire 1-hour block is clear
+                            # Validates the 1-hour block doesn't overlap an existing event
                             proposed_end = test_dt + datetime.timedelta(hours=1)
                             if (test_dt < ev_end) and (proposed_end > ev_start):
                                 is_busy = True
-                                break
-                                    
-                                if not is_busy:
-                                    available_slots.append(test_dt.strftime("%a, %b %d at %I:%M %p"))
+                                break                                   
+                        if not is_busy:
+                            available_slots.append(test_dt.strftime("%a, %b %d at %I:%M %p"))
 
         # Force the server to use EST for the J.A.D.E. header
         from datetime import datetime, timedelta, timezone
