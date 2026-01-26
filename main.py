@@ -170,7 +170,7 @@ async def audit_call(request: Request):
     language_detected = ["Spanish Marker"] if is_spanish else []
     
     # SCHEDULING TRIGGER: Multi-Node J.A.D.E. Dispatch
-    if any(k in transcript_text for k in ["schedule", "appointment", "calendar"]):
+    if any(k in transcript_text for k in ["schedule", "appointment", "calendar", "available"]):
         targets = JADE_NODES["spanish"] if is_spanish else (
             JADE_NODES["tier_1_2"] if tier <= 2 else (
             JADE_NODES["tier_3_4"] if tier <= 4 else JADE_NODES["tier_5_6"])
@@ -178,9 +178,16 @@ async def audit_call(request: Request):
         for node_id in targets:
             slots = check_jade_availability(node_id)
             if slots:
-                save_to_vault("DISPATCH", "📡", [f"Tier {tier} Routing", f"Node: {node_id}"], transcript_text)
-                return {"status": "scheduling", "options": slots}
-
+                # NEW: Calculate the range to give J.A.D.E context
+                # This assumes slots are sorted. It finds the first and last time for the requested day.
+                start_time = slots[0].split(" at ")[1]
+                end_time = "4:00 PM" if "Sun" in slots[0] else "8:00 PM" # Tier 1 hardwire context
+                
+                summary = f"Total availability for this day is from {start_time} to {end_time}. Individual slots: {', '.join(slots)}"
+                
+                save_to_vault("DISPATCH", "📡", [f"Tier {tier} Routing", f"Range: {start_time}-{end_time}"], transcript_text)
+                return {"status": "scheduling", "options": slots, "availability_summary": summary}
+                
     # VERDICT LOGIC
     status = "PASS"
     emoji = "🟢"
@@ -194,7 +201,7 @@ async def audit_call(request: Request):
 
 @app.get("/data", response_class=HTMLResponse)
 async def get_dashboard():
-    """Renders the Sovereign Vault as a professional audit ledger"""
+    """Renders the Sovereign Vault as a high-fidelity audit ledger"""
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute("SELECT emoji, verdict, timestamp, risks FROM sovereign_vault ORDER BY timestamp DESC LIMIT 50")
@@ -202,32 +209,45 @@ async def get_dashboard():
     cur.close()
     conn.close()
 
-    # Simple embedded HTML for the professional look
     rows = "".join([f"""
         <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 12px;">{log['emoji']}</td>
-            <td style="padding: 12px; font-weight: bold;">{log['verdict']}</td>
-            <td style="padding: 12px; color: #666;">{log['timestamp']}</td>
-            <td style="padding: 12px;">{", ".join(log['risks'])}</td>
+            <td style="padding: 15px; text-align: center; font-size: 1.2em;">{log['emoji']}</td>
+            <td style="padding: 15px; font-weight: bold; color: {'#d32f2f' if 'FAIL' in log['verdict'] else '#2e7d32' if 'PASS' in log['verdict'] else '#333'};">{log['verdict']}</td>
+            <td style="padding: 15px; color: #666;">{log['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}</td>
+            <td style="padding: 15px;">{' '.join([f'<span style="background:#f0f0f0; padding:2px 8px; border-radius:10px; margin-right:5px; font-size:0.85em;">{r}</span>' for r in log['risks']])}</td>
         </tr>
     """ for log in logs])
 
     return f"""
     <html>
-        <head><title>Sovereign Vault | NEnterprise</title></head>
-        <body style="font-family: sans-serif; padding: 40px; background: #f9f9f9;">
-            <h1 style="color: #333;">Sovereign Vault Audit Ledger</h1>
-            <table style="width: 100%; background: white; border-collapse: collapse; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                <thead style="background: #333; color: white;">
-                    <tr>
-                        <th style="padding: 12px; text-align: left;">S</th>
-                        <th style="padding: 12px; text-align: left;">Verdict</th>
-                        <th style="padding: 12px; text-align: left;">Timestamp</th>
-                        <th style="padding: 12px; text-align: left;">Risks Detected</th>
-                    </tr>
-                </thead>
-                <tbody>{rows}</tbody>
-            </table>
+        <head>
+            <title>NEnterprise | Sovereign Vault</title>
+            <style>
+                body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7f6; }}
+                .container {{ max-width: 1100px; margin: 50px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }}
+                header {{ border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }}
+                table {{ width: 100%; border-collapse: collapse; }}
+                th {{ text-align: left; background: #f8f9fa; padding: 15px; color: #555; text-transform: uppercase; font-size: 0.8em; letter-spacing: 1px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <header>
+                    <h1 style="margin: 0; color: #333;">Sovereign Vault <span style="font-weight: 300; color: #999;">Audit Ledger</span></h1>
+                    <div style="background: #2e7d32; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8em;">SYSTEM LIVE</div>
+                </header>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">Status</th>
+                            <th>Verdict</th>
+                            <th>Timestamp</th>
+                            <th>Forensic Risks Detected</th>
+                        </tr>
+                    </thead>
+                    <tbody>{rows}</tbody>
+                </table>
+            </div>
         </body>
     </html>
     """
