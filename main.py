@@ -127,15 +127,14 @@ def check_jade_availability(calendar_id='primary'):
                             if ev_start <= test_dt < ev_end:
                                 is_busy = True
                                 break
-                        
-                        if not is_busy:
-                            available_slots.append(test_dt.strftime('%b %d at %I:%M %p'))
-                            if len(available_slots) >= 5: return available_slots # Return first 5 openings
 
-        return available_slots
-    except Exception as e: 
-        print(f"📡 SCHEDULING ERROR: {e}")
-        return []
+        # Add a header that tells J.A.D.E. exactly what today is in EST
+        est_now = datetime.datetime.now()
+        today_header = est_now.strftime("Today is %A, %B %d, %Y. Current time is %I:%M %p EST.")
+        return [today_header] + available_slots
+        except Exception as e: 
+            print(f"📡 SCHEDULING ERROR: {e}")
+            return []
 
 def create_calendar_event(calendar_id, start_time_str):
     """Tier 3 Actuation: Commits the appointment to the Sovereign Ledger"""
