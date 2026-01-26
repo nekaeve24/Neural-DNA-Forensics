@@ -123,14 +123,14 @@ def check_jade_availability(calendar_id='primary'):
                             end = event['end'].get('dateTime', event['end'].get('date'))
                             ev_start = datetime.datetime.fromisoformat(start.replace('Z', '+00:00')).replace(tzinfo=None)
                             
-                            # NEW: Checks if the proposed 1-hour block overlaps the event
+                            # Validates that the entire 1-hour block is clear
                             proposed_end = test_dt + datetime.timedelta(hours=1)
                             if (test_dt < ev_end) and (proposed_end > ev_start):
                                 is_busy = True
                                 break
-                                
-                            if not is_busy:
-                                available_slots.append(test_dt.strftime("%a, %b %d at %I:%M %p"))
+                                    
+                                if not is_busy:
+                                    available_slots.append(test_dt.strftime("%a, %b %d at %I:%M %p"))
 
         # Force the server to use EST for the J.A.D.E. header
         from datetime import datetime, timedelta, timezone
@@ -220,7 +220,7 @@ async def audit_call(request: Request):
     if "got you down" in transcript_text or "appointment confirmed" in transcript_text:
         time_match = re.search(r'(\d+).*?(\d+[:\d+]*\s*[ap]\.?\s*[m]\.?)', transcript_text)
         if time_match:
-            booking_time = time_match.group(1)
+            booking_time = time_match.group(0)
             calendar_link = create_calendar_event(JADE1_ID, booking_time)
             if calendar_link:
                 save_to_vault("ACTUATION", "📅", ["Calendar Write Success"], f"Booked: {booking_time}")
