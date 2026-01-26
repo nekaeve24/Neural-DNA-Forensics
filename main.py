@@ -112,8 +112,13 @@ def check_jade_availability(calendar_id='primary'):
             for hour in range(9, 21):  # Covers the widest possible window (9am-8pm)
                 for minute in [0, 30]:
                     test_dt = (now_dt + datetime.timedelta(days=day)).replace(hour=hour, minute=minute, second=0, microsecond=0)
-                    
-                    # TIER 1: Check Hardwired Office Hours (Includes New Sunday 12-4)
+
+                    # TIER 0: Time-Travel Prevention
+                    # Only consider slots at least 15 minutes in the future
+                    if test_dt < (now_dt + datetime.timedelta(minutes=15)):
+                        continue
+                        
+                    # TIER 1: Check Hardwired Office Hours
                     if is_within_office_hours(test_dt):
                         
                         # TIER 3: Check for Conflicts (Is this slot already booked?)
