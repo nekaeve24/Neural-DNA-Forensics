@@ -97,9 +97,9 @@ def check_jade_availability(calendar_id='primary'):
         service = build('calendar', 'v3', credentials=creds)
 
         # Set search window: Now until 7 days out
-        now_dt = datetime.datetime.utcnow()
+        now_dt = datetime.now(timezone.utc).replace(tzinfo=None)
         timeMin = now_dt.isoformat() + 'Z'
-        timeMax = (now_dt + datetime.timedelta(days=7)).isoformat() + 'Z'
+        timeMax = (now_dt + timedelta(days=7)).isoformat() + 'Z'
         
         # Tier 3: Get all existing busy appointments
         events_result = service.events().list(
@@ -116,7 +116,7 @@ def check_jade_availability(calendar_id='primary'):
                     test_dt = (now_dt + datetime.timedelta(days=day)).replace(hour=hour, minute=minute, second=0, microsecond=0)
 
                     # TIER 0: Time-Travel Prevention
-                    if test_dt < (now_dt + datetime.timedelta(minutes=15)):
+                    if test_dt < (now_dt + timedelta(minutes=15)):
                         continue
                         
                     # TIER 1: Check Hardwired Office Hours
