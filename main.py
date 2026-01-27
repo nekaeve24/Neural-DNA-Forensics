@@ -1,7 +1,7 @@
 import re
 import os
 import json
-import datetime
+import datetime as dt_module
 import psycopg2
 from datetime import datetime, timedelta, timezone
 from psycopg2.extras import RealDictCursor
@@ -126,11 +126,11 @@ def check_jade_availability(calendar_id='primary'):
                         for event in busy_events:
                             start = event['start'].get('dateTime', event['start'].get('date'))
                             end = event['end'].get('dateTime', event['end'].get('date'))
-                            ev_start = datetime.datetime.fromisoformat(start.replace('Z', '+00:00')).replace(tzinfo=None)
-                            ev_end = datetime.datetime.fromisoformat(end.replace('Z', '+00:00')).replace(tzinfo=None)
+                            ev_start = datetime.fromisoformat(start.replace('Z', '+00:00')).replace(tzinfo=None)
+                            ev_end = datetime.fromisoformat(end.replace('Z', '+00:00')).replace(tzinfo=None)
                             
                             # Validates the 1-hour block doesn't overlap an existing event
-                            proposed_end = test_dt + datetime.timedelta(hours=1)
+                            test_dt + timedelta(hours=1)
                             if (test_dt < ev_end) and (proposed_end > ev_start):
                                 is_busy = True
                                 break                                   
