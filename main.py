@@ -219,9 +219,13 @@ async def audit_call(request: Request):
         for node_id in targets:
             slots = check_jade_availability(node_id)
             if slots:
-                # NEW: Calculate the range to give J.A.D.E context
-                start_time = slots[1].split(" at ")[1] if len(slots) > 1 else "9:00 AM"
-                end_time = "4:00 PM" if "Sun" in slots[1] else "8:00 PM"               
+                # Safely extract times only if slots are actually present
+                has_slots = isinstance(slots, list) and len(slots) > 1
+                start_time = slots[1].split(" at ")[1] if has_slots else "9:00 AM"
+                
+                # Check for Sunday in the first available slot specifically
+                is_sunday = has_slots and "Sun" in slots[1]
+                end_time = "4:00 PM" if is_sunday else "8:00 PM"           
                 summary = f"Total availability for this day is from {start_time} to {end_time}. Individual slots: {', '.join(slots[1:])}"
                 save_to_vault("DISPATCH", "📡", [f"Tier {tier} Routing", f"Range: {start_time}-{end_time}"], transcript_text)
                 return {"status": "scheduling", "options": slots, "availability_summary": summary}
