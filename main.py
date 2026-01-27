@@ -134,7 +134,7 @@ def check_jade_availability(calendar_id='primary'):
                             
                             # Validates the 1-hour block doesn't overlap an existing event
                             proposed_end = test_dt + timedelta(hours=1)
-                                    if (test_dt < ev_end) and (proposed_end > ev_start):
+                            if (test_dt < ev_end) and (proposed_end > ev_start):
                                 is_busy = True
                                 break                                   
                         if not is_busy:
