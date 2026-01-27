@@ -1,7 +1,6 @@
 import re
 import os
 import json
-import datetime as dt_module
 import psycopg2
 from datetime import datetime, timedelta, timezone
 from psycopg2.extras import RealDictCursor
@@ -16,13 +15,17 @@ from forensics import ForensicEngine
 forensic_engine = ForensicEngine()
 
 def is_within_office_hours(dt):
-    """Tier 1: Hardwired Base Availability Gate"""
-    # Monday (0) to Saturday (5): 9:00 AM - 8:00 PM
-    if 0 <= dt.weekday() <= 5:
-        return 9 <= dt.hour < 20
-    # Sunday (6): 12:00 PM - 4:00 PM
-    if dt.weekday() == 6:
-        return 12 <= dt.hour < 16
+    """Tier 1: Hardwired Base Availability Gate (EST Optimized)"""
+    # Force dt into EST (-5 hours) for consistency with J.A.D.E. booking
+    est_tz = timezone(timedelta(hours=-5))
+    dt_est = dt.astimezone(est_tz)
+
+    # Monday (0) to Saturday (5): 9:00 AM - 8:00 PM EST
+    if 0 <= dt_est.weekday() <= 5:
+        return 9 <= dt_est.hour < 20
+    # Sunday (6): 12:00 PM - 4:00 PM EST
+    if dt_est.weekday() == 6:
+        return 12 <= dt_est.hour < 16
     return False
 
 # --- 1. THE SOVEREIGN VAULT (POSTGRESQL) ---
@@ -96,7 +99,7 @@ def check_jade_availability(calendar_id='primary'):
         service = build('calendar', 'v3', credentials=creds)
 
         # Set search window: Now until 7 days out
-        now_dt = datetime.now(timezone.utc).replace(tzinfo=None)
+        now_dt = datetime.now(timezone(timedelta(hours=-5))).replace(tzinfo=None)
         timeMin = now_dt.isoformat() + 'Z'
         timeMax = (now_dt + timedelta(days=7)).isoformat() + 'Z'
         
@@ -130,8 +133,8 @@ def check_jade_availability(calendar_id='primary'):
                             ev_end = datetime.fromisoformat(end.replace('Z', '+00:00')).replace(tzinfo=None)
                             
                             # Validates the 1-hour block doesn't overlap an existing event
-                            test_dt + timedelta(hours=1)
-                            if (test_dt < ev_end) and (proposed_end > ev_start):
+                            proposed_end = test_dt + timedelta(hours=1)
+                                    if (test_dt < ev_end) and (proposed_end > ev_start):
                                 is_busy = True
                                 break                                   
                         if not is_busy:
@@ -155,14 +158,17 @@ def create_calendar_event(calendar_id, start_time_str):
         service = build('calendar', 'v3', credentials=creds)
 
         # Parse the time string JADE sends back (e.g., "Feb 01 at 02:00 PM")
-        current_year = datetime.datetime.now().year
-        dt = datetime.datetime.strptime(f"{start_time_str} {current_year}", "%b %d at %I:%M %p %Y")
+        current_year = datetime.now().year
+        dt = datetime.strptime(f"{start_time_str} {current_year}", "%b %d at %I:%M %p %Y")
+        
+        # Define the EST offset (-5 hours)
+        est_tz = timezone(timedelta(hours=-5))
         
         event = {
             'summary': 'H&R Block Consultation | JADE1',
             'description': 'Automated booking via NEnterprise Sovereign Guard.',
-            'start': {'dateTime': dt.isoformat(), 'timeZone': 'UTC'},
-            'end': {'dateTime': (dt + datetime.timedelta(hours=1)).isoformat(), 'timeZone': 'UTC'}
+            'start': {'dateTime': dt.replace(tzinfo=est_tz).isoformat(), 'timeZone': 'America/New_York'},
+            'end': {'dateTime': (dt + timedelta(hours=1)).replace(tzinfo=est_tz).isoformat(), 'timeZone': 'America/New_York'}
         }
 
         event_result = service.events().insert(calendarId=calendar_id, body=event).execute()
