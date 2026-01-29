@@ -222,27 +222,36 @@ async def audit_call(request: Request):
     is_spanish = any(w in transcript_text for w in ["hola", "gracias", "por favor"])
     language_detected = ["Spanish Marker"] if is_spanish else []
     
-    # SCHEDULING TRIGGER: Multi-Node J.A.D.E. Dispatch
+    # SCHEDULING TRIGGER: Cascading Multi-Node J.A.D.E. Dispatch
     if any(k in transcript_text for k in ["schedule", "appointment", "calendar", "available"]):
+        # Define priority search order based on Tier
         if is_spanish:
             targets = JADE_NODES["tier_3"]
-        elif tier <= 2:
-            targets = JADE_NODES["tier_1"]
+        elif tier == 2:
+            targets = JADE_NODES["tier_2"] + JADE_NODES["tier_3"]
         else:
-            targets = JADE_NODES["tier_2"]
+            targets = JADE_NODES["tier_1"] + JADE_NODES["tier_2"] + JADE_NODES["tier_3"]
             
         for node_id in targets:
             slots = check_jade_availability(node_id)
             if slots:
-                # Safely extract times only if slots are actually present
+                # Identify which tier the slot was found in
+                if node_id in JADE_NODES["tier_3"]:
+                    found_tier = "Tier 3 (Bilingual)"
+                elif node_id in JADE_NODES["tier_2"]:
+                    found_tier = "Tier 2 (Forensic)"
+                else:
+                    found_tier = "Tier 1 (Standard)"
+
                 has_slots = isinstance(slots, list) and len(slots) > 1
                 start_time = slots[1].split(" at ")[1] if has_slots else "9:00 AM"
                         
-                # Check for Sunday in the first available slot specifically
                 is_sunday = has_slots and "Sun" in slots[1]
                 end_time = "4:00 PM" if is_sunday else "8:00 PM"           
-                summary = f"Total availability for this day is from {start_time} to {end_time}. Individual slots: {', '.join(slots[1:])}"
-                save_to_vault("DISPATCH", "📡", [f"Tier {tier} Routing", f"Range: {start_time}-{end_time}"], transcript_text)
+                
+                summary = f"I have matched you with a {found_tier} Executive. Availability is from {start_time} to {end_time}. Slots: {', '.join(slots[1:])}"
+                
+                save_to_vault("DISPATCH", "📡", [f"Cascaded to {found_tier}", f"Range: {start_time}-{end_time}"], transcript_text)
                 return {"status": "scheduling", "options": slots, "availability_summary": summary}
 
     # ACTUATION TRIGGER: Commits the appointment to Google Calendar
