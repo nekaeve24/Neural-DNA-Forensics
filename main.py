@@ -59,14 +59,26 @@ def init_db():
     finally:
         if conn: conn.close()
 
-# --- 2. JADE 1NODE DISPATCHER CONFIG (TESTING ONLY) ---
-JADE1_ID = "be944a6b50cab5a5ddc8d3c91f68bf91eb6a399df256e8e829e5545c6f762321@group.calendar.google.com"
-
+# --- 2. JADE MULTI-NODE DISPATCHER CONFIG ---
 JADE_NODES = {
-    "tier_1_2": [JADE1_ID], 
-    "tier_3_4": [JADE1_ID], 
-    "tier_5_6": [JADE1_ID],           
-    "spanish": [JADE1_ID] 
+    "tier_1": [
+        "be944a6b50cab5a5ddc8d3c91f68bf91eb6a399df256e8e829e5545c6f762321@group.calendar.google.com", 
+        "070a3fd6dcf01ae92d144af1f958fd20fef589da9fc06e5c4e5674a6925e49c5@group.calendar.google.com", 
+        "96aba65ad0d442d90ceef58ecba225ca8cee4f5b863dc2932989e924df89615c@group.calendar.google.com", 
+        "05f1451855a88c7d3f8c5ebdcaa408615fef2410df2bfba35331f66b000e9da6@group.calendar.google.com", 
+        "72b73a392ecf7e616b609f5ca8311e3b05ee4642d467b3e0d2e4d506e9b3a01d@group.calendar.google.com"
+    ],
+    "tier_2": [
+        "fbc5bb44c66ae6d5350e499f68c272aa1e488c1cf2367f390fb635c4878c9e0f@group.calendar.google.com", 
+        "4dfd9061c9cdb93f48dcc3f42ca322472d514ad37d346895cda403c4f81b1241@group.calendar.google.com", 
+        "46a8327e5b24ab39ed1f8bde6099aeef3fc9bc6d924c80a5c93768b4c7e2f1fe@group.calendar.google.com", 
+        "8758396170bebd88aa0289452928d3badfd6c7c21a1db855a016ec8d8355ab1e@group.calendar.google.com", 
+        "4d6589910ad189591a4dc68be27d78dd5a5a843a04a91903c655773d0b999bf0@group.calendar.google.com"
+    ],
+    "tier_3": [
+        "0a97928938960d1260e9c1a339237103afea6f1e91d5166b97752a60303abc42@group.calendar.google.com", 
+        "d4aea929efe17006381c17497a20d48bf1cb2c78a6d226369559ba9433284ea9@group.calendar.google.com"
+    ]
 }
 
 # --- 3. APP INITIALIZATION ---
@@ -212,23 +224,26 @@ async def audit_call(request: Request):
     
     # SCHEDULING TRIGGER: Multi-Node J.A.D.E. Dispatch
     if any(k in transcript_text for k in ["schedule", "appointment", "calendar", "available"]):
-        targets = JADE_NODES["spanish"] if is_spanish else (
-            JADE_NODES["tier_1_2"] if tier <= 2 else (
-            JADE_NODES["tier_3_4"] if tier <= 4 else JADE_NODES["tier_5_6"])
-        )
-        for node_id in targets:
-            slots = check_jade_availability(node_id)
-            if slots:
-                # Safely extract times only if slots are actually present
-                has_slots = isinstance(slots, list) and len(slots) > 1
-                start_time = slots[1].split(" at ")[1] if has_slots else "9:00 AM"
-                
-                # Check for Sunday in the first available slot specifically
-                is_sunday = has_slots and "Sun" in slots[1]
-                end_time = "4:00 PM" if is_sunday else "8:00 PM"           
-                summary = f"Total availability for this day is from {start_time} to {end_time}. Individual slots: {', '.join(slots[1:])}"
-                save_to_vault("DISPATCH", "📡", [f"Tier {tier} Routing", f"Range: {start_time}-{end_time}"], transcript_text)
-                return {"status": "scheduling", "options": slots, "availability_summary": summary}
+        if is_spanish:
+                targets = JADE_NODES["tier_3"]
+            elif tier <= 2:
+                targets = JADE_NODES["tier_1"]
+            else:
+                targets = JADE_NODES["tier_2"]
+            
+            for node_id in targets:
+                slots = check_jade_availability(node_id)
+                if slots:
+                    # Safely extract times only if slots are actually present
+                    has_slots = isinstance(slots, list) and len(slots) > 1
+                    start_time = slots[1].split(" at ")[1] if has_slots else "9:00 AM"
+                        
+                    # Check for Sunday in the first available slot specifically
+                    is_sunday = has_slots and "Sun" in slots[1]
+                    end_time = "4:00 PM" if is_sunday else "8:00 PM"           
+                    summary = f"Total availability for this day is from {start_time} to {end_time}. Individual slots: {', '.join(slots[1:])}"
+                    save_to_vault("DISPATCH", "📡", [f"Tier {tier} Routing", f"Range: {start_time}-{end_time}"], transcript_text)
+                    return {"status": "scheduling", "options": slots, "availability_summary": summary}
 
     # ACTUATION TRIGGER: Commits the appointment to Google Calendar
     if "got you down" in transcript_text or "appointment confirmed" in transcript_text:
