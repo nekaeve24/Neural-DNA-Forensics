@@ -297,7 +297,7 @@ async def get_dashboard():
     return f"""
     <html>
         <head>
-            <title>NEnterprise | Sovereign Vault</title>
+            <title>NEnterprise Audit - Global View</title>
             <style>
                 body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7f6; }}
                 .container {{ max-width: 1100px; margin: 50px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }}
