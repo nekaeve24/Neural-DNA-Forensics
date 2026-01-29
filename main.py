@@ -254,15 +254,19 @@ async def audit_call(request: Request):
                 save_to_vault("DISPATCH", "📡", [f"Cascaded to {found_tier}", f"Range: {start_time}-{end_time}"], transcript_text)
                 return {"status": "scheduling", "options": slots, "availability_summary": summary}
 
-    # ACTUATION TRIGGER: Commits the appointment to Google Calendar
-    if "got you down" in transcript_text or "appointment confirmed" in transcript_text:
-        time_match = re.search(r'(\d+).*?(\d+[:\d+]*\s*[ap]\.?\s*[m]\.?)', transcript_text)
-        if time_match:
-            booking_time = time_match.group(0)
-            calendar_link = create_calendar_event(JADE1_ID, booking_time)
-            if calendar_link:
-                save_to_vault("ACTUATION", "📅", ["Calendar Write Success"], f"Booked: {booking_time}")
-                return {"status": "booked", "link": calendar_link}
+    # ACTUATION TRIGGER: Commits the appointment to the matched Executive's Calendar
+        if any(k in transcript_text for k in ["got you down", "appointment confirmed"]):
+            time_match = re.search(r'(\d+).*?(\d+[:\d+]*\s*[ap]\.?\s*[m]\.?)', transcript_text)
+            if time_match:
+                booking_time = time_match.group(0)
+                
+                # Dynamic ID selection from your 12-calendar list
+                final_calendar_id = targets[0] if 'targets' in locals() else JADE_NODES["tier_1"][0]
+                
+                calendar_link = create_calendar_event(final_calendar_id, booking_time)
+                if calendar_link:
+                    save_to_vault("ACTUATION", "📅", ["Calendar Write Success"], f"Booked on {final_calendar_id}")
+                    return {"status": "booked", "link": calendar_link}
                 
     # VERDICT LOGIC
     status = "PASS"
