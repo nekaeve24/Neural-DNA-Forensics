@@ -301,7 +301,7 @@ async def get_dashboard():
     return f"""
     <html>
         <head>
-            <title>NEnterprise Audit - Global View</title>
+            <title>NEnterprise Audit - Global Ledger</title>
             <style>
                 body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7f6; }}
                 .container {{ max-width: 1100px; margin: 50px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }}
@@ -313,7 +313,7 @@ async def get_dashboard():
         <body>
             <div class="container">
                 <header>
-                    <h1 style="margin: 0; color: #333;">Sovereign Vault <span style="font-weight: 300; color: #999;">Audit Ledger</span></h1>
+                    <h1 style="margin: 0; color: #333;">NEnterprise Audit <span style="font-weight: 300; color: #999;">Global Ledger</span></h1>
                     <div style="background: #2e7d32; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8em;">SYSTEM LIVE</div>
                 </header>
                 <table>
