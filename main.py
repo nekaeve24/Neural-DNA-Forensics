@@ -225,25 +225,25 @@ async def audit_call(request: Request):
     # SCHEDULING TRIGGER: Multi-Node J.A.D.E. Dispatch
     if any(k in transcript_text for k in ["schedule", "appointment", "calendar", "available"]):
         if is_spanish:
-                targets = JADE_NODES["tier_3"]
-            elif tier <= 2:
-                targets = JADE_NODES["tier_1"]
-            else:
-                targets = JADE_NODES["tier_2"]
+            targets = JADE_NODES["tier_3"]
+        elif tier <= 2:
+            targets = JADE_NODES["tier_1"]
+        else:
+            targets = JADE_NODES["tier_2"]
             
-            for node_id in targets:
-                slots = check_jade_availability(node_id)
-                if slots:
-                    # Safely extract times only if slots are actually present
-                    has_slots = isinstance(slots, list) and len(slots) > 1
-                    start_time = slots[1].split(" at ")[1] if has_slots else "9:00 AM"
+        for node_id in targets:
+            slots = check_jade_availability(node_id)
+            if slots:
+                # Safely extract times only if slots are actually present
+                has_slots = isinstance(slots, list) and len(slots) > 1
+                start_time = slots[1].split(" at ")[1] if has_slots else "9:00 AM"
                         
-                    # Check for Sunday in the first available slot specifically
-                    is_sunday = has_slots and "Sun" in slots[1]
-                    end_time = "4:00 PM" if is_sunday else "8:00 PM"           
-                    summary = f"Total availability for this day is from {start_time} to {end_time}. Individual slots: {', '.join(slots[1:])}"
-                    save_to_vault("DISPATCH", "📡", [f"Tier {tier} Routing", f"Range: {start_time}-{end_time}"], transcript_text)
-                    return {"status": "scheduling", "options": slots, "availability_summary": summary}
+                # Check for Sunday in the first available slot specifically
+                is_sunday = has_slots and "Sun" in slots[1]
+                end_time = "4:00 PM" if is_sunday else "8:00 PM"           
+                summary = f"Total availability for this day is from {start_time} to {end_time}. Individual slots: {', '.join(slots[1:])}"
+                save_to_vault("DISPATCH", "📡", [f"Tier {tier} Routing", f"Range: {start_time}-{end_time}"], transcript_text)
+                return {"status": "scheduling", "options": slots, "availability_summary": summary}
 
     # ACTUATION TRIGGER: Commits the appointment to Google Calendar
     if "got you down" in transcript_text or "appointment confirmed" in transcript_text:
