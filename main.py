@@ -2,6 +2,7 @@ import re
 import os
 import json
 import psycopg2
+import requests
 from datetime import datetime, timedelta, timezone
 from psycopg2.extras import RealDictCursor
 from fastapi import FastAPI, Request
@@ -9,10 +10,24 @@ from fastapi.responses import HTMLResponse
 from textblob import TextBlob
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
-from forensics import ForensicEngine
 
-# --- 0. ENGINE INITIALIZATION ---
-forensic_engine = ForensicEngine()
+# --- 0. THE AUDIT BRIDGE (Option 1 Implementation) ---
+def audit_to_ndfe(status, emoji, risks, transcript):
+    """Sends audit data to Terminal 1 via network instead of direct import"""
+    try:
+        payload = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "status": status,
+            "emoji": emoji,
+            "risks": risks,
+            "transcript": transcript,
+            "source": "JADE_ASSIST"
+        }
+        # Dispatches data to the NDFE Brain on Port 8000
+        requests.post("http://127.0.0.1:8000/audit", json=payload, timeout=0.5)
+    except Exception:
+        # If Terminal 1 is unavailable, J.A.D.E. Assist continues uninterrupted
+        pass
 
 def is_within_office_hours(dt):
     """Tier 1: Hardwired Base Availability Gate (EST Optimized)"""
@@ -29,42 +44,51 @@ def is_within_office_hours(dt):
     return False
 
 # --- 1. THE SOVEREIGN VAULT (POSTGRESQL) ---
-DATABASE_URL = os.getenv("DATABASE_URL")
-if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+# Hardwired Local Link - Try this first
+DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/postgres"
 
 def get_db_connection():
-    if not DATABASE_URL:
-        raise ValueError("DATABASE_URL environment variable is missing!")
-    return psycopg2.connect(DATABASE_URL, sslmode='require')
+    """Safety Valve: Prevents the app from crashing if the Vault is offline"""
+    try:
+        # If the URL is still a placeholder, don't even try to connect
+        if "your_actual_postgresql" in DATABASE_URL:
+            return None
+        return psycopg2.connect(DATABASE_URL, sslmode='prefer')
+    except Exception as e:
+        print(f"⚠️ VAULT OFFLINE: {e}")
+        return None
 
 def init_db():
-    """Initializes the Permanent Audit Ledger for Institutional Traceability"""
-    conn = None
+    """Initializes the Permanent Audit Ledger - Now Crash-Proof"""
     try:
         conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS sovereign_vault (
-                id SERIAL PRIMARY KEY,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                verdict TEXT,
-                emoji TEXT,
-                risks TEXT[],
-                transcript TEXT
-            );
-        """)
-        conn.commit()
-        cur.close()
-    finally:
-        if conn: conn.close()
+        if conn:
+            cur = conn.cursor()
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS sovereign_vault (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    verdict TEXT,
+                    emoji TEXT,
+                    risks TEXT[],
+                    transcript TEXT
+                );
+            """)
+            conn.commit()
+            cur.close()
+            conn.close()
+            print("✅ VAULT CONNECTED")
+        else:
+            print("⚠️ VAULT OFFLINE: Local Forensic Mode Active.")
+    except Exception as e:
+        print(f"⚖️ INIT ERROR: {e}")
 
 # --- 2. JADE MULTI-NODE DISPATCHER CONFIG ---
 JADE_NODES = {
     "tier_1": [
         "be944a6b50cab5a5ddc8d3c91f68bf91eb6a399df256e8e829e5545c6f762321@group.calendar.google.com", 
         "070a3fd6dcf01ae92d144af1f958fd20fef589da9fc06e5c4e5674a6925e49c5@group.calendar.google.com", 
-        "96aba65ad0d442d90ceef58ecba225ca8cee4f5b863dc2932989e924df89615c@group.calendar.google.com", 
+        "96aba65ad0d442d90ceef58ecba225ca8cee4f5b863dc2932989e924df89615ca@group.calendar.google.com", 
         "05f1451855a88c7d3f8c5ebdcaa408615fef2410df2bfba35331f66b000e9da6@group.calendar.google.com", 
         "72b73a392ecf7e616b609f5ca8311e3b05ee4642d467b3e0d2e4d506e9b3a01d@group.calendar.google.com"
     ],
@@ -86,7 +110,7 @@ app = FastAPI()
 init_db()
 
 def save_to_vault(verdict, emoji, risks, transcript):
-    """Writing all NEnterprise interactions to the Permanent Ledger"""
+    """Writing all NEnterprise interactions to the Permanent Ledger and Audit Bridge"""
     conn = None
     try:
         conn = get_db_connection()
@@ -97,6 +121,10 @@ def save_to_vault(verdict, emoji, risks, transcript):
         )
         conn.commit()
         cur.close()
+        
+        # Option 1: Trigger the network-based audit instead of a local function call
+        audit_to_ndfe(verdict, emoji, risks, transcript)
+        
     except Exception as e:
         print(f"⚖️ VAULT ERROR: {e}")
     finally:
@@ -148,7 +176,7 @@ def check_jade_availability(calendar_id='primary'):
                             proposed_end = test_dt + timedelta(hours=1)
                             if (test_dt < ev_end) and (proposed_end > ev_start):
                                 is_busy = True
-                                break                                   
+                                break                                    
                         if not is_busy:
                             available_slots.append(test_dt.strftime("%a, %b %d at %I:%M %p"))
 
@@ -215,10 +243,10 @@ async def audit_call(request: Request):
     lies_detected = [t for t in perjury_triggers if t in transcript_text and "i am an ai" not in transcript_text]
     risk_flags = [w for w in ["scam", "illegal", "fraud", "lawsuit"] if w in transcript_text]
 
-    # NEW: Run the Model 12 Audit to detect "Linguistic DNA" (parquear, ion, etc.)
-    detected_markers = forensic_engine.model_12_audit(transcript_text)
+    # Option 1 Modification: Direct local audit markers removed to maintain independence
+    detected_markers = [] # Linguistic DNA audit moved to NDFE terminal side
 
-    # ENGINE 2: BIAS & LINGUISTIC AUDIT (MODEL 12 FOUNDATION)
+    # ENGINE 2: BIAS & LINGUISTIC AUDIT
     is_spanish = any(w in transcript_text for w in ["hola", "gracias", "por favor"])
     language_detected = ["Spanish Marker"] if is_spanish else []
     
@@ -255,18 +283,18 @@ async def audit_call(request: Request):
                 return {"status": "scheduling", "options": slots, "availability_summary": summary}
 
     # ACTUATION TRIGGER: Commits the appointment to the matched Executive's Calendar
-        if any(k in transcript_text for k in ["got you down", "appointment confirmed"]):
-            time_match = re.search(r'(\d+).*?(\d+[:\d+]*\s*[ap]\.?\s*[m]\.?)', transcript_text)
-            if time_match:
-                booking_time = time_match.group(0)
-                
-                # Dynamic ID selection from your 12-calendar list
-                final_calendar_id = targets[0] if 'targets' in locals() else JADE_NODES["tier_1"][0]
-                
-                calendar_link = create_calendar_event(final_calendar_id, booking_time)
-                if calendar_link:
-                    save_to_vault("ACTUATION", "📅", ["Calendar Write Success"], f"Booked on {final_calendar_id}")
-                    return {"status": "booked", "link": calendar_link}
+    if any(k in transcript_text for k in ["got you down", "appointment confirmed"]):
+        time_match = re.search(r'(\d+).*?(\d+[:\d+]*\s*[ap]\.?\s*[m]\.?)', transcript_text)
+        if time_match:
+            booking_time = time_match.group(0)
+            
+            # Dynamic ID selection from your list
+            final_calendar_id = targets[0] if 'targets' in locals() else JADE_NODES["tier_1"][0]
+            
+            calendar_link = create_calendar_event(final_calendar_id, booking_time)
+            if calendar_link:
+                save_to_vault("ACTUATION", "📅", ["Calendar Write Success"], f"Booked on {final_calendar_id}")
+                return {"status": "booked", "link": calendar_link}
                 
     # VERDICT LOGIC
     status = "PASS"
@@ -283,51 +311,77 @@ async def audit_call(request: Request):
 async def get_dashboard():
     """Renders the Sovereign Vault as a high-fidelity audit ledger"""
     conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute("SELECT emoji, verdict, timestamp, risks FROM sovereign_vault ORDER BY timestamp DESC LIMIT 50")
-    logs = cur.fetchall()
-    cur.close()
-    conn.close()
+    
+    # NEW: If database is offline, show a clean "Offline" message instead of crashing
+    if conn is None:
+        return f"""
+        <html>
+            <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+                <h1>🏛️ NEnterprise Global Ledger</h1>
+                <div style="background: #fff3cd; color: #856404; padding: 20px; border-radius: 10px; display: inline-block;">
+                    <strong>STATUS: OFFLINE</strong><br>
+                    The Sovereign Vault is currently in Local Forensic Mode. 
+                    <br>Live database logs are unavailable.
+                </div>
+                <p><a href="/data">Retry Connection</a></p>
+            </body>
+        </html>
+        """
 
-    rows = "".join([f"""
-        <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 15px; text-align: center; font-size: 1.2em;">{log['emoji']}</td>
-            <td style="padding: 15px; font-weight: bold; color: {'#d32f2f' if 'FAIL' in log['verdict'] else '#2e7d32' if 'PASS' in log['verdict'] else '#333'};">{log['verdict']}</td>
-            <td style="padding: 15px; color: #666;">{log['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}</td>
-            <td style="padding: 15px;">{' '.join([f'<span style="background:#f0f0f0; padding:2px 8px; border-radius:10px; margin-right:5px; font-size:0.85em;">{r}</span>' for r in log['risks']])}</td>
-        </tr>
-    """ for log in logs])
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT emoji, verdict, timestamp, risks FROM sovereign_vault ORDER BY timestamp DESC LIMIT 50")
+        logs = cur.fetchall()
+        cur.close()
+        conn.close()
 
-    return f"""
-    <html>
-        <head>
-            <title>NEnterprise Audit - Global Ledger</title>
-            <style>
-                body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7f6; }}
-                .container {{ max-width: 1100px; margin: 50px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }}
-                header {{ border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }}
-                table {{ width: 100%; border-collapse: collapse; }}
-                th {{ text-align: left; background: #f8f9fa; padding: 15px; color: #555; text-transform: uppercase; font-size: 0.8em; letter-spacing: 1px; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <header>
-                    <h1 style="margin: 0; color: #333;">NEnterprise Audit <span style="font-weight: 300; color: #999;">Global Ledger</span></h1>
-                    <div style="background: #2e7d32; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8em;">SYSTEM LIVE</div>
-                </header>
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 50px;">Status</th>
-                            <th>Verdict</th>
-                            <th>Timestamp</th>
-                            <th>Forensic Risks Detected</th>
-                        </tr>
-                    </thead>
-                    <tbody>{rows}</tbody>
-                </table>
-            </div>
-        </body>
-    </html>
-    """
+        rows = "".join([f"""
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 15px; text-align: center; font-size: 1.2em;">{log['emoji']}</td>
+                <td style="padding: 15px; font-weight: bold; color: {'#d32f2f' if 'FAIL' in log['verdict'] else '#2e7d32' if 'PASS' in log['verdict'] else '#333'};">{log['verdict']}</td>
+                <td style="padding: 15px; color: #666;">{log['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}</td>
+                <td style="padding: 15px;">{' '.join([f'<span style="background:#f0f0f0; padding:2px 8px; border-radius:10px; margin-right:5px; font-size:0.85em;">{r}</span>' for r in log['risks']])}</td>
+            </tr>
+        """ for log in logs])
+
+        return f"""
+        <html>
+            <head>
+                <title>Audit Global Ledger</title>
+                <style>
+                    body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7f6; }}
+                    .container {{ max-width: 1100px; margin: 50px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }}
+                    header {{ border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }}
+                    table {{ width: 100%; border-collapse: collapse; }}
+                    th {{ text-align: left; background: #f8f9fa; padding: 15px; color: #555; text-transform: uppercase; font-size: 0.8em; letter-spacing: 1px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <header>
+                        <h1 style="margin: 0; color: #333;">NEnterprise Audit <span style="font-weight: 300; color: #999;">Global Ledger</span></h1>
+                        <div style="background: #2e7d32; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8em;">SYSTEM LIVE</div>
+                    </header>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">Status</th>
+                                <th>Verdict</th>
+                                <th>Timestamp</th>
+                                <th>Forensic Risks Detected</th>
+                            </tr>
+                        </thead>
+                        <tbody>{rows}</tbody>
+                    </table>
+                </div>
+            </body>
+        </html>
+        """
+    except Exception as e:
+        return f"<h1>Error loading ledger: {e}</h1>"
+
+# --- 6. SYSTEM IGNITION ---
+if __name__ == "__main__":
+    import uvicorn
+    print("🚀 NEnterprise Sovereign Guard: Launching Interface...")
+    uvicorn.run(app, host="127.0.0.1", port=8001)
