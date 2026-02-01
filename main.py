@@ -45,7 +45,7 @@ def is_within_office_hours(dt):
 
 # --- 1. THE SOVEREIGN VAULT (POSTGRESQL) ---
 # Hardwired Local Link - Try this first
-DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/postgres"
+DATABASE_URL = "postgresql://postgres:aKDmjJPDwCCLqAGxdJfGXFHTSRbKrmkQ@postgres.railway.internal:5432/railway"
 
 def get_db_connection():
     """Safety Valve: Prevents the app from crashing if the Vault is offline"""
