@@ -11,6 +11,15 @@ from textblob import TextBlob
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
+AUDIT_URL = os.getenv("AUDIT_DESTINATION")
+
+def dispatch_audit(payload):
+    if AUDIT_URL:
+        try:
+            requests.post(AUDIT_URL, json=payload, timeout=1.0)
+        except Exception:
+            pass
+
 # --- 0. THE AUDIT BRIDGE (Option 1 Implementation) ---
 def audit_to_ndfe(status, emoji, risks, transcript):
     """Sends audit data to Terminal 1 via network instead of direct import"""
