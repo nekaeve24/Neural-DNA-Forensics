@@ -240,12 +240,20 @@ async def audit_call(request: Request):
             return {"status": "archived"}
         return {"status": "monitoring_active"}
 
-    # ENGINE 1: TRUTH, COMPLIANCE & COMPLEXITY TRIAGE
+    # NEW PRIORITY 1: LINGUISTIC DETECTION
+    # Detect if the user needs Spanish or a Bilingual Executive first
+    is_spanish = any(w in transcript_text for w in ["hola", "gracias", "por favor", "spanish", "bilingual", "espanol"])
+    
+    # NEW PRIORITY 2: TRUTH, COMPLIANCE & COMPLEXITY TRIAGE
     blob = TextBlob(transcript_text)
     complexity_score = sum(2 for word in ["business", "rental", "k-1", "audit", "offshore"] if word in transcript_text)
     if blob.sentiment.polarity < -0.3: complexity_score += 2 # Stress escalation
     
-    tier = max(1, min(6, complexity_score))
+    # ASSIGN TIER (Linguistic needs always override standard complexity for routing)
+    if is_spanish:
+        tier = 3
+    else:
+        tier = max(1, min(6, complexity_score))
     
     # TIGHTENED FORENSIC AUDIT: Only triggers on specific user-initiated strings
     perjury_triggers = ["real person", "real human", "live person", "not a robot"]
@@ -305,15 +313,30 @@ async def audit_call(request: Request):
                 save_to_vault("ACTUATION", "📅", ["Calendar Write Success"], f"Booked on {final_calendar_id}")
                 return {"status": "booked", "link": calendar_link}
                 
-    # VERDICT LOGIC
+    # ENRICHED LINGUISTIC AUDIT
+    # Identifies Model 12 Linguistic DNA for your proprietary auditor
+    language_detected = ["SPANISH_DNA_DETECTED"] if is_spanish else []
+    
+    # FINAL VERDICT LOGIC
     status = "PASS"
     emoji = "🟢"
     if lies_detected: status, emoji = "CRITICAL FAIL (Lying)", "🔴"
     elif risk_flags: status, emoji = "WARN (Risk Flags)", "🟠"
     elif is_spanish: status, emoji = "PASS (Linguistic)", "🔵"
 
-    # COMMIT TO PERMANENT VAULT
-    save_to_vault(status, emoji, detected_markers + lies_detected + risk_flags + language_detected, transcript_text)
+    # CONSOLIDATE ALL FORENSIC DATA
+    forensic_payload = detected_markers + lies_detected + risk_flags + language_detected
+
+    # CRITICAL: MOVE THE AUDIT SHOUT ABOVE THE DATABASE SAVE
+    # This ensures your NDFE Forensic Monitor (Port 8000) updates instantly
+    try:
+        audit_to_ndfe(status, emoji, forensic_payload, transcript_text)
+    except Exception as e:
+        print(f"📡 NDFE BRIDGE OFFLINE: {e}")
+
+    # COMMIT TO PERMANENT VAULT (RAILWAY POSTGRES)
+    save_to_vault(status, emoji, forensic_payload, transcript_text)
+    
     return {"status": "monitored", "verdict": status}
 
 @app.get("/data", response_class=HTMLResponse)
