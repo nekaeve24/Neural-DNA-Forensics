@@ -33,7 +33,7 @@ def audit_to_ndfe(status, emoji, risks, transcript):
             "source": "JADE_ASSIST"
         }
         # Dispatches data to the NDFE Brain on Port 8000
-        requests.post("http://localhost:8000", json=payload, timeout=0.5)
+        requests.post("https://whitney-untwinned-unfervidly.ngrok-free.dev/audit", json=payload, timeout=0.5)
     except Exception:
         # If Terminal 1 is unavailable, J.A.D.E. Assist continues uninterrupted
         pass
