@@ -118,6 +118,27 @@ JADE_NODES = {
 app = FastAPI()
 init_db()
 
+# --- 3. APP INITIALIZATION ---
+app = FastAPI()
+init_db()
+
+@app.post("/audit")
+async def relay_audit(request: Request):
+    """Bridge Relay: Receives cloud dispatches and pushes to Terminal 1"""
+    try:
+        data = await request.json()
+        print(f"📥 VAULT RECEIPT: Dispatching to Local Monitor...")
+        
+        # This relays the data to your Terminal 1 (Monitor) on Port 8000
+        # Replace the URL below with your actual Terminal 1 address if different
+        requests.post("http://127.0.0.1:8000/audit", json=data, timeout=1.0)
+        
+        return {"status": "vault_relayed"}
+    except Exception as e:
+        print(f"❌ RELAY ERROR: {e}")
+        return {"status": "relay_failed", "error": str(e)}
+# INSERT THE CODE ABOVE THIS LINE
+
 def save_to_vault(verdict, emoji, risks, transcript):
     """Writing all NEnterprise interactions to the Permanent Ledger and Audit Bridge"""
     conn = None
@@ -240,103 +261,67 @@ async def audit_call(request: Request):
             return {"status": "archived"}
         return {"status": "monitoring_active"}
 
-    # NEW PRIORITY 1: LINGUISTIC DETECTION
-    # Detect if the user needs Spanish or a Bilingual Executive first
-    is_spanish = any(w in transcript_text for w in ["hola", "gracias", "por favor", "spanish", "bilingual", "espanol"])
+    # 🏛️ NEW PRIORITY 1: LINGUISTIC DETECTION (Updated for authorized Spanish)
+    # Detect if the user explicitly requested a Spanish speaker to allow JADE's switch
+    user_requested_spanish = any(w in transcript_text for w in ["spanish speaker", "habla español", "speak spanish"])
+    is_spanish = any(w in transcript_text for w in ["hola", "gracias", "por favor", "espanol"])
     
-    # NEW PRIORITY 2: TRUTH, COMPLIANCE & COMPLEXITY TRIAGE
+    # 🏛️ NEW PRIORITY 2: TRUTH & COMPLEXITY TRIAGE
     blob = TextBlob(transcript_text)
     complexity_score = sum(2 for word in ["business", "rental", "k-1", "audit", "offshore"] if word in transcript_text)
-    if blob.sentiment.polarity < -0.3: complexity_score += 2 # Stress escalation
+    if blob.sentiment.polarity < -0.3: complexity_score += 2 
     
-    # ASSIGN TIER (Linguistic needs always override standard complexity for routing)
-    if is_spanish:
+    # ASSIGN TIER: Ensure Bilingual requests trigger Tier 3 [cite: 13, 14]
+    if user_requested_spanish or is_spanish:
         tier = 3
     else:
         tier = max(1, min(6, complexity_score))
     
-    # TIGHTENED FORENSIC AUDIT: Only triggers on specific user-initiated strings
+    # TIGHTENED FORENSIC AUDIT
     perjury_triggers = ["real person", "real human", "live person", "not a robot"]
     lies_detected = [t for t in perjury_triggers if t in transcript_text and "i am an ai" not in transcript_text]
     risk_flags = [w for w in ["scam", "illegal", "fraud", "lawsuit"] if w in transcript_text]
 
-    # Option 1 Modification: Direct local audit markers removed to maintain independence
-    detected_markers = [] # Linguistic DNA audit moved to NDFE terminal side
-
-    # ENGINE 2: BIAS & LINGUISTIC AUDIT
-    is_spanish = any(w in transcript_text for w in ["hola", "gracias", "por favor"])
-    language_detected = ["Spanish Marker"] if is_spanish else []
-    
-    # SCHEDULING TRIGGER: Cascading Multi-Node J.A.D.E. Dispatch
+    # SCHEDULING TRIGGER: Cascading Multi-Node J.A.D.E. Dispatch [cite: 11, 15]
     if any(k in transcript_text for k in ["schedule", "appointment", "calendar", "available"]):
-        # Define priority search order based on Tier
-        if is_spanish:
+        if tier == 3:
             targets = JADE_NODES["tier_3"]
+            found_tier = "Tier 3 (Bilingual)"
         elif tier == 2:
             targets = JADE_NODES["tier_2"] + JADE_NODES["tier_3"]
+            found_tier = "Tier 2 (Forensic)"
         else:
             targets = JADE_NODES["tier_1"] + JADE_NODES["tier_2"] + JADE_NODES["tier_3"]
+            found_tier = "Tier 1 (Standard)"
             
         for node_id in targets:
             slots = check_jade_availability(node_id)
             if slots:
-                # Identify which tier the slot was found in
-                if node_id in JADE_NODES["tier_3"]:
-                    found_tier = "Tier 3 (Bilingual)"
-                elif node_id in JADE_NODES["tier_2"]:
-                    found_tier = "Tier 2 (Forensic)"
-                else:
-                    found_tier = "Tier 1 (Standard)"
-
                 has_slots = isinstance(slots, list) and len(slots) > 1
                 start_time = slots[1].split(" at ")[1] if has_slots else "9:00 AM"
-                        
-                is_sunday = has_slots and "Sun" in slots[1]
-                end_time = "4:00 PM" if is_sunday else "8:00 PM"           
+                summary = f"I have matched you with a {found_tier} Executive. Availability is from {start_time} to 8:00 PM. Slots: {', '.join(slots[1:])}"
                 
-                summary = f"I have matched you with a {found_tier} Executive. Availability is from {start_time} to {end_time}. Slots: {', '.join(slots[1:])}"
-                
-                save_to_vault("DISPATCH", "📡", [f"Cascaded to {found_tier}", f"Range: {start_time}-{end_time}"], transcript_text)
+                # 🏛️ DETAILED LEDGER MARKER (Fixes the "More than Dispatch" requirement)
+                save_to_vault("DISPATCH", "📡", [f"Cascaded to {found_tier}", f"Range: {start_time}-8:00 PM"], transcript_text)
                 return {"status": "scheduling", "options": slots, "availability_summary": summary}
 
-    # ACTUATION TRIGGER: Commits the appointment to the matched Executive's Calendar
-    if any(k in transcript_text for k in ["got you down", "appointment confirmed"]):
-        time_match = re.search(r'(\d+).*?(\d+[:\d+]*\s*[ap]\.?\s*[m]\.?)', transcript_text)
-        if time_match:
-            booking_time = time_match.group(0)
-            
-            # Dynamic ID selection from your list
-            final_calendar_id = targets[0] if 'targets' in locals() else JADE_NODES["tier_1"][0]
-            
-            calendar_link = create_calendar_event(final_calendar_id, booking_time)
-            if calendar_link:
-                save_to_vault("ACTUATION", "📅", ["Calendar Write Success"], f"Booked on {final_calendar_id}")
-                return {"status": "booked", "link": calendar_link}
-                
-    # ENRICHED LINGUISTIC AUDIT
-    # Identifies Model 12 Linguistic DNA for your proprietary auditor
-    language_detected = ["SPANISH_DNA_DETECTED"] if is_spanish else []
-    
     # FINAL VERDICT LOGIC
+    # Switch to blue circles (🔵) for linguistic passes as requested [cite: 94, 111]
     status = "PASS"
     emoji = "🟢"
     if lies_detected: status, emoji = "CRITICAL FAIL (Lying)", "🔴"
     elif risk_flags: status, emoji = "WARN (Risk Flags)", "🟠"
-    elif is_spanish: status, emoji = "PASS (Linguistic)", "🔵"
+    elif tier == 3: status, emoji = "PASS (Linguistic)", "🔵"
 
-    # CONSOLIDATE ALL FORENSIC DATA
-    forensic_payload = detected_markers + lies_detected + risk_flags + language_detected
+    forensic_payload = lies_detected + risk_flags + ([f"Monitored on {found_tier}" if 'found_tier' in locals() else "Monitored Intake"])
 
-    # CRITICAL: MOVE THE AUDIT SHOUT ABOVE THE DATABASE SAVE
-    # This ensures your NDFE Forensic Monitor (Port 8000) updates instantly
+    # CRITICAL: BROADCAST TO NDFE (PORT 8000) BEFORE VAULT SAVE
     try:
         audit_to_ndfe(status, emoji, forensic_payload, transcript_text)
     except Exception as e:
         print(f"📡 NDFE BRIDGE OFFLINE: {e}")
 
-    # COMMIT TO PERMANENT VAULT (RAILWAY POSTGRES)
     save_to_vault(status, emoji, forensic_payload, transcript_text)
-    
     return {"status": "monitored", "verdict": status}
 
 @app.get("/data", response_class=HTMLResponse)
