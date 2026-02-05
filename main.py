@@ -11,13 +11,18 @@ from textblob import TextBlob
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
-# --- 1. CONFIGURATION & AUDIT BRIDGE ---
-# Use the internal local address for Port 8000 to ensure the dashboard updates instantly
-NDFE_MONITOR_URL = "http://127.0.0.1:8000/audit"
-DATABASE_URL = "postgresql://postgres:aKDmjJPDwCCLqAGxdJfGXFHTSRbKrmkQ@caboose.proxy.rlwy.net:34965/railway"
+AUDIT_URL = os.getenv("AUDIT_DESTINATION")
 
+def dispatch_audit(payload):
+    if AUDIT_URL:
+        try:
+            requests.post(AUDIT_URL, json=payload, timeout=1.0)
+        except Exception:
+            pass
+
+# --- 0. THE AUDIT BRIDGE (Option 1 Implementation) ---
 def audit_to_ndfe(status, emoji, risks, transcript):
-    """Bridge to Port 8000: Increased timeout to ensure dashboard updates"""
+    """Sends audit data to Terminal 1 via network instead of direct import"""
     try:
         payload = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -27,50 +32,118 @@ def audit_to_ndfe(status, emoji, risks, transcript):
             "transcript": transcript,
             "source": "JADE_ASSIST"
         }
-        # Increased timeout to 1.5s to prevent missing dashboard updates during heavy calls
-        requests.post("http://127.0.0.1:8000/audit", json=payload, timeout=1.5)
-    except Exception as e:
-        print(f"📡 NDFE OFFLINE: {e}")
-
-# --- 2. THE SOVEREIGN VAULT (POSTGRESQL) ---
-def get_db_connection():
-    try:
-        return psycopg2.connect(DATABASE_URL, sslmode='prefer')
+        # Dispatches data to the NDFE Brain on Port 8000
+        requests.post("https://whitney-untwinned-unfervidly.ngrok-free.dev/audit", json=payload, timeout=0.5)
     except Exception:
+        # If Terminal 1 is unavailable, J.A.D.E. Assist continues uninterrupted
+        pass
+
+def is_within_office_hours(dt):
+    """Tier 1: Hardwired Base Availability Gate (EST Optimized)"""
+    # Force dt into EST (-5 hours) for consistency with J.A.D.E. booking
+    est_tz = timezone(timedelta(hours=-5))
+    dt_est = dt.astimezone(est_tz)
+
+    # Monday (0) to Saturday (5): 9:00 AM - 8:00 PM EST
+    if 0 <= dt_est.weekday() <= 5:
+        return 9 <= dt_est.hour < 20
+    # Sunday (6): 12:00 PM - 4:00 PM EST
+    if dt_est.weekday() == 6:
+        return 12 <= dt_est.hour < 16
+    return False
+
+# --- 1. THE SOVEREIGN VAULT (POSTGRESQL) ---
+# Hardwired Local Link - Try this first
+DATABASE_URL = "postgresql://postgres:aKDmjJPDwCCLqAGxdJfGXFHTSRbKrmkQ@caboose.proxy.rlwy.net:34965/railway"
+
+def get_db_connection():
+    """Safety Valve: Prevents the app from crashing if the Vault is offline"""
+    try:
+        # If the URL is still a placeholder, don't even try to connect
+        if "your_actual_postgresql" in DATABASE_URL:
+            return None
+        return psycopg2.connect(DATABASE_URL, sslmode='prefer')
+    except Exception as e:
+        print(f"⚠️ VAULT OFFLINE: {e}")
         return None
 
 def init_db():
-    conn = get_db_connection()
-    if conn:
-        cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS sovereign_vault (
-                id SERIAL PRIMARY KEY,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                verdict TEXT,
-                emoji TEXT,
-                risks TEXT[],
-                transcript TEXT
-            );
-        """)
-        conn.commit()
-        cur.close()
-        conn.close()
+    """Initializes the Permanent Audit Ledger - Now Crash-Proof"""
+    try:
+        conn = get_db_connection()
+        if conn:
+            cur = conn.cursor()
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS sovereign_vault (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    verdict TEXT,
+                    emoji TEXT,
+                    risks TEXT[],
+                    transcript TEXT
+                );
+            """)
+            conn.commit()
+            cur.close()
+            conn.close()
+            print("✅ VAULT CONNECTED")
+        else:
+            print("⚠️ VAULT OFFLINE: Local Forensic Mode Active.")
+    except Exception as e:
+        print(f"⚖️ INIT ERROR: {e}")
 
-# --- 3. JADE MULTI-NODE DISPATCHER CONFIG ---
+# --- 2. JADE MULTI-NODE DISPATCHER CONFIG ---
 JADE_NODES = {
-    "tier_1": ["be944a6b50cab5a5ddc8d3c91f68bf91eb6a399df256e8e829e5545c6f762321@group.calendar.google.com"],
-    "tier_2": ["fbc5bb44c66ae6d5350e499f68c272aa1e488c1cf2367f390fb635c4878c9e0f@group.calendar.google.com"],
-    "tier_3": ["0a97928938960d1260e9c1a339237103afea6f1e91d5166b97752a60303abc42@group.calendar.google.com"]
+    "tier_1": [
+        "be944a6b50cab5a5ddc8d3c91f68bf91eb6a399df256e8e829e5545c6f762321@group.calendar.google.com", 
+        "070a3fd6dcf01ae92d144af1f958fd20fef589da9fc06e5c4e5674a6925e49c5@group.calendar.google.com", 
+        "96aba65ad0d442d90ceef58ecba225ca8cee4f5b863dc2932989e924df89615ca@group.calendar.google.com", 
+        "05f1451855a88c7d3f8c5ebdcaa408615fef2410df2bfba35331f66b000e9da6@group.calendar.google.com", 
+        "72b73a392ecf7e616b609f5ca8311e3b05ee4642d467b3e0d2e4d506e9b3a01d@group.calendar.google.com"
+    ],
+    "tier_2": [
+        "fbc5bb44c66ae6d5350e499f68c272aa1e488c1cf2367f390fb635c4878c9e0f@group.calendar.google.com", 
+        "4dfd9061c9cdb93f48dcc3f42ca322472d514ad37d346895cda403c4f81b1241@group.calendar.google.com", 
+        "46a8327e5b24ab39ed1f8bde6099aeef3fc9bc6d924c80a5c93768b4c7e2f1fe@group.calendar.google.com", 
+        "8758396170bebd88aa0289452928d3badfd6c7c21a1db855a016ec8d8355ab1e@group.calendar.google.com", 
+        "4d6589910ad189591a4dc68be27d78dd5a5a843a04a91903c655773d0b999bf0@group.calendar.google.com"
+    ],
+    "tier_3": [
+        "0a97928938960d1260e9c1a339237103afea6f1e91d5166b97752a60303abc42@group.calendar.google.com", 
+        "d4aea929efe17006381c17497a20d48bf1cb2c78a6d226369559ba9433284ea9@group.calendar.google.com"
+    ]
 }
 
-# --- 4. APP INITIALIZATION ---
+# --- 3. APP INITIALIZATION ---
 app = FastAPI()
 init_db()
 
-def save_to_ledger(verdict, emoji, risks, transcript):
-    conn = get_db_connection()
-    if conn:
+# --- 3. APP INITIALIZATION ---
+app = FastAPI()
+init_db()
+
+@app.post("/audit")
+async def relay_audit(request: Request):
+    """Bridge Relay: Receives cloud dispatches and pushes to Terminal 1"""
+    try:
+        data = await request.json()
+        print(f"📥 VAULT RECEIPT: Dispatching to Local Monitor...")
+        
+        # This relays the data to your Terminal 1 (Monitor) on Port 8000
+        # Replace the URL below with your actual Terminal 1 address if different
+        requests.post("http://127.0.0.1:8000/audit", json=data, timeout=1.0)
+        
+        return {"status": "vault_relayed"}
+    except Exception as e:
+        print(f"❌ RELAY ERROR: {e}")
+        return {"status": "relay_failed", "error": str(e)}
+# INSERT THE CODE ABOVE THIS LINE
+
+def save_to_vault(verdict, emoji, risks, transcript):
+    """Writing all NEnterprise interactions to the Permanent Ledger and Audit Bridge"""
+    conn = None
+    try:
+        conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO sovereign_vault (verdict, emoji, risks, transcript) VALUES (%s, %s, %s, %s)",
@@ -78,73 +151,254 @@ def save_to_ledger(verdict, emoji, risks, transcript):
         )
         conn.commit()
         cur.close()
-        conn.close()
-    # Always attempt to update the Port 8000 Dashboard
-    audit_to_ndfe(verdict, emoji, risks, transcript)
+        
+        # Option 1: Trigger the network-based audit instead of a local function call
+        audit_to_ndfe(verdict, emoji, risks, transcript)
+        
+    except Exception as e:
+        print(f"⚖️ VAULT ERROR: {e}")
+    finally:
+        if conn: conn.close()
 
-# --- 5. DYNAMIC SCHEDULING (No Hardwired Hours) ---
-def check_jade_availability(calendar_id):
+def check_jade_availability(calendar_id='primary'):
+    """Queries JADE Nodes using 3-Tier Logic (Empty Space Detection)"""
     SCOPES = ['https://www.googleapis.com/auth/calendar']
     try:
-        creds_json = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
-        creds = service_account.Credentials.from_service_account_info(creds_json, scopes=SCOPES)
+        google_creds_json = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
+        creds = service_account.Credentials.from_service_account_info(google_creds_json, scopes=SCOPES)
         service = build('calendar', 'v3', credentials=creds)
-        
-        now = datetime.now(timezone(timedelta(hours=-5))).replace(tzinfo=None)
-        t_min, t_max = now.isoformat() + 'Z', (now + timedelta(days=7)).isoformat() + 'Z'
-        
-        events = service.events().list(calendarId=calendar_id, timeMin=t_min, timeMax=t_max, singleEvents=True).execute().get('items', [])
-        slots = []
-        for day in range(7):
-            for hour in range(24): # Full 24h search; constraints managed by Vapi prompt
-                for minute in [0, 30]:
-                    t = (now + timedelta(days=day)).replace(hour=hour, minute=minute, second=0, microsecond=0)
-                    if t < (now + timedelta(minutes=15)): continue
-                    busy = any(datetime.fromisoformat(e['start'].get('dateTime', e['start'].get('date')).replace('Z', '+00:00')).replace(tzinfo=None) <= t < datetime.fromisoformat(e['end'].get('dateTime', e['end'].get('date')).replace('Z', '+00:00')).replace(tzinfo=None) for e in events)
-                    if not busy: slots.append(t.strftime("%a, %b %d at %I:%M %p"))
-        
-        return f"Current time: {now.strftime('%I:%M %p EST')}. Available: {', '.join(slots[:5])}"
-    except Exception: return "Error fetching availability."
 
-# --- 6. THE CORE FORENSIC ENGINE ---
+        # Set search window: Now until 7 days out
+        now_dt = datetime.now(timezone(timedelta(hours=-5))).replace(tzinfo=None)
+        timeMin = now_dt.isoformat() + 'Z'
+        timeMax = (now_dt + timedelta(days=7)).isoformat() + 'Z'
+        
+        # Tier 3: Get all existing busy appointments
+        events_result = service.events().list(
+            calendarId=calendar_id, timeMin=timeMin, timeMax=timeMax, 
+            singleEvents=True, orderBy='startTime'
+        ).execute()
+        busy_events = events_result.get('items', [])
+
+        available_slots = []
+        # Generate 30-minute test slots for the next 7 days
+        for day in range(7):
+            for hour in range(9, 21):  # Covers the widest possible window (9am-8pm)
+                for minute in [0, 30]:
+                    test_dt = (now_dt + timedelta(days=day)).replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+                    # TIER 0: Time-Travel Prevention
+                    if test_dt < (now_dt + timedelta(minutes=15)):
+                        continue
+                        
+                    # TIER 1: Check Hardwired Office Hours
+                    if is_within_office_hours(test_dt):
+                        
+                        # TIER 3: Check for Conflicts (Is this slot already booked?)
+                        is_busy = False
+                        for event in busy_events:
+                            start = event['start'].get('dateTime', event['start'].get('date'))
+                            end = event['end'].get('dateTime', event['end'].get('date'))
+                            ev_start = datetime.fromisoformat(start.replace('Z', '+00:00')).replace(tzinfo=None)
+                            ev_end = datetime.fromisoformat(end.replace('Z', '+00:00')).replace(tzinfo=None)
+                            
+                            # Validates the 1-hour block doesn't overlap an existing event
+                            proposed_end = test_dt + timedelta(hours=1)
+                            if (test_dt < ev_end) and (proposed_end > ev_start):
+                                is_busy = True
+                                break                                    
+                        if not is_busy:
+                            available_slots.append(test_dt.strftime("%a, %b %d at %I:%M %p"))
+
+        # Force the server to use EST for the J.A.D.E. header
+        est_now = datetime.now(timezone(timedelta(hours=-5))) 
+        today_header = est_now.strftime("Today is %A, %B %d, %Y. Current time is %I:%M %p EST.")
+        return f"{today_header} | Available: {', '.join(available_slots[:5])}"
+
+    except Exception as e: 
+        print(f"📡 SCHEDULING ERROR: {e}")
+        return []
+
+def create_calendar_event(calendar_id, start_time_str):
+    """Tier 3 Actuation: Commits the appointment to the Sovereign Ledger"""
+    SCOPES = ['https://www.googleapis.com/auth/calendar']
+    try:
+        google_creds_json = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
+        creds = service_account.Credentials.from_service_account_info(google_creds_json, scopes=SCOPES)
+        service = build('calendar', 'v3', credentials=creds)
+
+        # Parse the time string JADE sends back (e.g., "Feb 01 at 02:00 PM")
+        current_year = datetime.now().year
+        dt = datetime.strptime(f"{start_time_str} {current_year}", "%b %d at %I:%M %p %Y")
+        
+        # Define the EST offset (-5 hours)
+        est_tz = timezone(timedelta(hours=-5))
+        
+        event = {
+            'summary': 'H&R Block Consultation | JADE1',
+            'description': 'Automated booking via NEnterprise Sovereign Guard.',
+            'start': {'dateTime': dt.replace(tzinfo=est_tz).isoformat(), 'timeZone': 'America/New_York'},
+            'end': {'dateTime': (dt + timedelta(hours=1)).replace(tzinfo=est_tz).isoformat(), 'timeZone': 'America/New_York'}
+        }
+
+        event_result = service.events().insert(calendarId=calendar_id, body=event).execute()
+        return event_result.get('htmlLink')
+    except Exception as e:
+        print(f"📡 BOOKING ERROR: {e}")
+        return None
+
+# --- 4. THE CORE FORENSIC & DISPATCH ENGINE ---
 @app.post("/audit-call")
 async def audit_call(request: Request):
     data = await request.json()
-    transcript = str(data.get('message', {}).get('transcript', '')).lower()
-    
-    # Forensic Checks
-    has_spanish = any(w in transcript for w in ["spanish speaker", "habla español", "speak spanish", "hola"])
-    hallucination = "friends with audit" in transcript or "god editor" in transcript
-    correction = any(w in transcript for w in ["apologize", "confusion", "i asked for"])
+    call_status = data.get('message', {}).get('call', {}).get('status')
+    transcript_text = str(data.get('message', {}).get('transcript', '')).lower()
 
-    # Tier Routing
-    tier_label = "Tier 3 (Bilingual)" if has_spanish else "Tier 1 (Standard)"
-    
-    # Dispatch Logic
-    if any(k in transcript for k in ["schedule", "appointment", "calendar"]):
-        risks = [f"Cascaded to {tier_label}", "Dynamic Availability"]
-        if hallucination: risks.append("⚠️ HALLUCINATION_DETECTED")
-        if correction: risks.append("⚖️ SELF_CORRECTION_LOGGED")
-        
-        status, emoji = ("PASS (Corrected)", "⚖️") if correction else ("DISPATCH", "📡")
-        save_to_ledger(status, emoji, risks, transcript)
-        return {"status": "scheduling", "summary": f"Routing to {tier_label}"}
+    # SOVEREIGN GUARD: End-of-Session Integrity
+    if not transcript_text.strip():
+        if call_status == "ended":
+            save_to_vault("PASS", "✅", ["Session Closed Cleanly"], "Heartbeat Only")
+            return {"status": "archived"}
+        return {"status": "monitoring_active"}
 
-    # Monitor Pass
-    status, emoji = ("PASS (Linguistic)", "🔵") if tier_label == "Tier 3 (Bilingual)" else ("PASS", "🟢")
-    save_to_ledger(status, emoji, [f"Monitored on {tier_label}"], transcript)
+    # 🏛️ NEW PRIORITY 1: LINGUISTIC DETECTION (Updated for authorized Spanish)
+    # Detect if the user explicitly requested a Spanish speaker to allow JADE's switch
+    user_requested_spanish = any(w in transcript_text for w in ["spanish speaker", "habla español", "speak spanish"])
+    is_spanish = any(w in transcript_text for w in ["hola", "gracias", "por favor", "espanol"])
+    
+    # 🏛️ NEW PRIORITY 2: TRUTH & COMPLEXITY TRIAGE
+    blob = TextBlob(transcript_text)
+    complexity_score = sum(2 for word in ["business", "rental", "k-1", "audit", "offshore"] if word in transcript_text)
+    if blob.sentiment.polarity < -0.3: complexity_score += 2 
+    
+    # ASSIGN TIER: Ensure Bilingual requests trigger Tier 3 [cite: 13, 14]
+    if user_requested_spanish or is_spanish:
+        tier = 3
+    else:
+        tier = max(1, min(6, complexity_score))
+    
+    # TIGHTENED FORENSIC AUDIT
+    perjury_triggers = ["real person", "real human", "live person", "not a robot"]
+    lies_detected = [t for t in perjury_triggers if t in transcript_text and "i am an ai" not in transcript_text]
+    risk_flags = [w for w in ["scam", "illegal", "fraud", "lawsuit"] if w in transcript_text]
+
+    # SCHEDULING TRIGGER: Cascading Multi-Node J.A.D.E. Dispatch [cite: 11, 15]
+    if any(k in transcript_text for k in ["schedule", "appointment", "calendar", "available"]):
+        if tier == 3:
+            targets = JADE_NODES["tier_3"]
+            found_tier = "Tier 3 (Bilingual)"
+        elif tier == 2:
+            targets = JADE_NODES["tier_2"] + JADE_NODES["tier_3"]
+            found_tier = "Tier 2 (Forensic)"
+        else:
+            targets = JADE_NODES["tier_1"] + JADE_NODES["tier_2"] + JADE_NODES["tier_3"]
+            found_tier = "Tier 1 (Standard)"
+            
+        for node_id in targets:
+            slots = check_jade_availability(node_id)
+            if slots:
+                has_slots = isinstance(slots, list) and len(slots) > 1
+                start_time = slots[1].split(" at ")[1] if has_slots else "9:00 AM"
+                summary = f"I have matched you with a {found_tier} Executive. Availability is from {start_time} to 8:00 PM. Slots: {', '.join(slots[1:])}"
+                
+                # 🏛️ DETAILED LEDGER MARKER (Fixes the "More than Dispatch" requirement)
+                save_to_vault("DISPATCH", "📡", [f"Cascaded to {found_tier}", f"Range: {start_time}-8:00 PM"], transcript_text)
+                return {"status": "scheduling", "options": slots, "availability_summary": summary}
+
+    # FINAL VERDICT LOGIC
+    # Switch to blue circles (🔵) for linguistic passes as requested
+    status = "PASS"
+    emoji = "🟢"
+    if lies_detected: status, emoji = "CRITICAL FAIL (Lying)", "🔴"
+    elif risk_flags: status, emoji = "WARN (Risk Flags)", "🟠"
+    elif tier == 3: status, emoji = "PASS (Linguistic)", "🔵"
+
+    forensic_payload = lies_detected + risk_flags + ([f"Monitored on {found_tier}" if 'found_tier' in locals() else "Monitored Intake"])
+
+    # CRITICAL: BROADCAST TO NDFE (PORT 8000) BEFORE VAULT SAVE
+    try:
+        audit_to_ndfe(status, emoji, forensic_payload, transcript_text)
+    except Exception as e:
+        print(f"📡 NDFE BRIDGE OFFLINE: {e}")
+
+    save_to_vault(status, emoji, forensic_payload, transcript_text)
     return {"status": "monitored", "verdict": status}
 
 @app.get("/data", response_class=HTMLResponse)
 async def get_dashboard():
+    """Renders the Sovereign Vault as a high-fidelity audit ledger"""
     conn = get_db_connection()
-    if not conn: return "<h1>VAULT OFFLINE</h1>"
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute("SELECT emoji, verdict, timestamp, risks FROM sovereign_vault ORDER BY timestamp DESC LIMIT 50")
-    logs = cur.fetchall()
-    rows = "".join([f"<tr><td>{l['emoji']}</td><td>{l['verdict']}</td><td>{l['timestamp']}</td><td>{' '.join(l['risks'])}</td></tr>" for l in logs])
-    return f"<html><body><h1>NEnterprise Audit Global Ledger</h1><table>{rows}</table></body></html>"
+    
+    # NEW: If database is offline, show a clean "Offline" message instead of crashing
+    if conn is None:
+        return f"""
+        <html>
+            <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+                <h1>🏛️ NEnterprise Global Ledger</h1>
+                <div style="background: #fff3cd; color: #856404; padding: 20px; border-radius: 10px; display: inline-block;">
+                    <strong>STATUS: OFFLINE</strong><br>
+                    The Sovereign Vault is currently in Local Forensic Mode. 
+                    <br>Live database logs are unavailable.
+                </div>
+                <p><a href="/data">Retry Connection</a></p>
+            </body>
+        </html>
+        """
 
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT emoji, verdict, timestamp, risks FROM sovereign_vault ORDER BY timestamp DESC LIMIT 50")
+        logs = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        rows = "".join([f"""
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 15px; text-align: center; font-size: 1.2em;">{log['emoji']}</td>
+                <td style="padding: 15px; font-weight: bold; color: {'#d32f2f' if 'FAIL' in log['verdict'] else '#2e7d32' if 'PASS' in log['verdict'] else '#333'};">{log['verdict']}</td>
+                <td style="padding: 15px; color: #666;">{log['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}</td>
+                <td style="padding: 15px;">{' '.join([f'<span style="background:#f0f0f0; padding:2px 8px; border-radius:10px; margin-right:5px; font-size:0.85em;">{r}</span>' for r in log['risks']])}</td>
+            </tr>
+        """ for log in logs])
+
+        return f"""
+        <html>
+            <head>
+                <title>Audit Global Ledger</title>
+                <style>
+                    body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7f6; }}
+                    .container {{ max-width: 1100px; margin: 50px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }}
+                    header {{ border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }}
+                    table {{ width: 100%; border-collapse: collapse; }}
+                    th {{ text-align: left; background: #f8f9fa; padding: 15px; color: #555; text-transform: uppercase; font-size: 0.8em; letter-spacing: 1px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <header>
+                        <h1 style="margin: 0; color: #333;">NEnterprise Audit <span style="font-weight: 300; color: #999;">Global Ledger</span></h1>
+                        <div style="background: #2e7d32; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8em;">SYSTEM LIVE</div>
+                    </header>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">Status</th>
+                                <th>Verdict</th>
+                                <th>Timestamp</th>
+                                <th>Forensic Risks Detected</th>
+                            </tr>
+                        </thead>
+                        <tbody>{rows}</tbody>
+                    </table>
+                </div>
+            </body>
+        </html>
+        """
+    except Exception as e:
+        return f"<h1>Error loading ledger: {e}</h1>"
+
+# --- 6. SYSTEM IGNITION ---
 if __name__ == "__main__":
     import uvicorn
+    print("🚀 NEnterprise Sovereign Guard: Launching Interface...")
     uvicorn.run(app, host="127.0.0.1", port=8001)
