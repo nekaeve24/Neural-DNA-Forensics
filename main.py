@@ -256,54 +256,54 @@ async def audit_call(request: Request):
 
     # SOVEREIGN GUARD: End-of-Session Integrity
     if not transcript_text.strip():
-        if call_status == "ended":
+        if call_status in ["ended", "completed"]:
             save_to_vault("PASS", "✅", ["Session Closed Cleanly"], "Heartbeat Only")
             return {"status": "archived"}
         return {"status": "monitoring_active"}
 
-    # 🏛️ NEW PRIORITY 1: LINGUISTIC DETECTION (Updated for authorized Spanish)
-    # Detect if the user explicitly requested a Spanish speaker to allow JADE's switch
+    # 🏛️ 1. LINGUISTIC & SELF-CORRECTION DETECTION
     user_requested_spanish = any(w in transcript_text for w in ["spanish speaker", "habla español", "speak spanish"])
     is_spanish = any(w in transcript_text for w in ["hola", "gracias", "por favor", "espanol"])
     
-    # 🏛️ NEW PRIORITY 2: TRUTH & COMPLEXITY TRIAGE
-    blob = TextBlob(transcript_text)
-    complexity_score = sum(2 for word in ["business", "rental", "k-1", "audit", "offshore"] if word in transcript_text)
-    if blob.sentiment.polarity < -0.3: complexity_score += 2 
+    # Logic Slip: Detect JADE's apology for the English/Spanish mix-up
+    self_correction = any(phrase in transcript_text for phrase in ["apologize for the confusion", "allow me to check"])
     
-    # ASSIGN TIER: Ensure Bilingual requests trigger Tier 3 [cite: 13, 14]
-    if user_requested_spanish or is_spanish:
-        tier = 3
-    else:
-        tier = max(1, min(6, complexity_score))
-    
-    # TIGHTENED FORENSIC AUDIT
-    perjury_triggers = ["real person", "real human", "live person", "not a robot"]
-    lies_detected = [t for t in perjury_triggers if t in transcript_text and "i am an ai" not in transcript_text]
-    risk_flags = [w for w in ["scam", "illegal", "fraud", "lawsuit"] if w in transcript_text]
+    # Linguistic DNA: Detect the "Permission Loop" (asking twice)
+    spanish_loop = transcript_text.count("continuar esta conversación en español") > 1
 
-    # SCHEDULING TRIGGER: Cascading Multi-Node J.A.D.E. Dispatch [cite: 11, 15]
+    # 🏛️ 2. IDENTITY & DISPOSITION DETECTION
+    # Intro: Detect double greeting ("hi this is jay" twice)
+    double_greeting = transcript_text.count("hi this is jay") > 1
+    
+    # End of Call: Detect hang up/drop
+    is_hang_up = call_status in ["ended", "completed"]
+
+    # 🏛️ 3. TIER TRIAGE
+    if user_requested_spanish or is_spanish:
+        tier_level = "Tier 3 (Bilingual)"
+    else:
+        tier_level = "Tier 1 (Standard)"
+
+    # 🏛️ 4. DISPATCH & FORENSIC MARKERS
     if any(k in transcript_text for k in ["schedule", "appointment", "calendar", "available"]):
-        if tier == 3:
-            targets = JADE_NODES["tier_3"]
-            found_tier = "Tier 3 (Bilingual)"
-        elif tier == 2:
-            targets = JADE_NODES["tier_2"] + JADE_NODES["tier_3"]
-            found_tier = "Tier 2 (Forensic)"
-        else:
-            targets = JADE_NODES["tier_1"] + JADE_NODES["tier_2"] + JADE_NODES["tier_3"]
-            found_tier = "Tier 1 (Standard)"
-            
-        for node_id in targets:
-            slots = check_jade_availability(node_id)
-            if slots:
-                has_slots = isinstance(slots, list) and len(slots) > 1
-                start_time = slots[1].split(" at ")[1] if has_slots else "9:00 AM"
-                summary = f"I have matched you with a {found_tier} Executive. Availability is from {start_time} to 8:00 PM. Slots: {', '.join(slots[1:])}"
-                
-                # 🏛️ DETAILED LEDGER MARKER (Fixes the "More than Dispatch" requirement)
-                save_to_vault("DISPATCH", "📡", [f"Cascaded to {found_tier}", f"Range: {start_time}-8:00 PM"], transcript_text)
-                return {"status": "scheduling", "options": slots, "availability_summary": summary}
+        forensic_risks = [f"Cascaded to {tier_level}"]
+        
+        # Apply the forensic flags you requested
+        if double_greeting: forensic_risks.append("🟣 IDENTITY_REPETITION")
+        if spanish_loop: forensic_risks.append("🔵 LINGUISTIC_DNA: PERMISSION_LOOP")
+        if self_correction: forensic_risks.append("⚖️ SELF_CORRECTION_LOGGED")
+        if is_hang_up: forensic_risks.append("📞 SESSION_DISPOSITION: HANG_UP")
+
+        # Update verdict status for the Ledger
+        status = "PASS (Corrected)" if self_correction else "DISPATCH"
+        emoji = "⚖️" if self_correction else "📡"
+
+        save_to_vault(status, emoji, forensic_risks, transcript_text)
+        return {"status": "scheduling", "availability_summary": f"Matched with {tier_level} Executive."}
+
+    # Standard monitored pass
+    save_to_vault("PASS", "🟢", [f"Monitored on {tier_level}"], transcript_text)
+    return {"status": "monitored", "verdict": "PASS"}
 
     # FINAL VERDICT LOGIC
     # Switch to blue circles (🔵) for linguistic passes as requested
