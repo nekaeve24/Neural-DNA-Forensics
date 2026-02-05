@@ -28,7 +28,7 @@ def audit_to_ndfe(status, emoji, risks, transcript):
             "source": "JADE_ASSIST"
         }
         # Increased timeout to 1.5s to prevent missing dashboard updates during heavy calls
-        requests.post(NDFE_MONITOR_URL, json=payload, timeout=1.5)
+        requests.post("http://127.0.0.1:8000/audit", json=payload, timeout=1.5)
     except Exception as e:
         print(f"📡 NDFE OFFLINE: {e}")
 
