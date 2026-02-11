@@ -274,61 +274,106 @@ async def audit_call(request: Request):
     # 🏛️ 3. TIER TRIAGE
     tier_level = "Tier 3 (Bilingual)" if (user_requested_spanish or is_spanish) else "Tier 1 (Standard)"
 
-# 🏛️ 4. FORENSIC RISK COMPILATION
-    # NEW: Define scheduling success so the flag can trigger
+# --- 4. THE CORE FORENSIC & DISPATCH ENGINE (REWORKED) ---
+@app.post("/audit-call")
+async def audit_call(request: Request):
+    # Record start time for Latency Tracking
+    start_time = datetime.now()
+    
+    data = await request.json()
+    call_status = data.get('message', {}).get('call', {}).get('status')
+    transcript_text = str(data.get('message', {}).get('transcript', '')).lower()
+
+    # SOVEREIGN GUARD: End-of-Session Integrity
+    if not transcript_text.strip():
+        if call_status in ["ended", "completed"]:
+            save_to_vault("ACTION: SESSION_CLOSED_CLEANLY", "⚖️", ["Session Closed Cleanly"], "Heartbeat Only")
+            return {"status": "archived"}
+        return {"status": "monitoring_active"}
+
+    # 🏛️ 1. LINGUISTIC DETECTION
+    user_requested_spanish = any(w in transcript_text for w in ["spanish speaker", "habla español", "speak spanish"])
+    user_requested_english = any(w in transcript_text for w in ["speak english", "in english", "english speaker"])
+    is_spanish = any(w in transcript_text for w in ["hola", "gracias", "por favor", "espanol"])
+    
+    # 🏛️ 2. IDENTITY & DISPOSITION DETECTION
+    double_greeting = transcript_text.count("hi this is jay") > 1
+    is_hang_up = call_status in ["ended", "completed"]
+    
+    # 🏛️ 3. SCHEDULING & TASK DETECTION
+    # Success is confirmed if we see keywords + lack of failure phrases
     scheduling_success = any(k in transcript_text for k in ["confirmed", "scheduled", "appointment set", "got you down"])
+    scheduling_failure = any(phrase in transcript_text for phrase in ["technical difficulties", "issue booking", "try again later", "couldn't book"])
+    appt_cancelled = "cancel" in transcript_text and "confirmed" in transcript_text
 
-    risk_flags = [f"Monitored on {tier_level}"]
+    # 🏛️ 4. HALLUCINATION & INTEGRITY DETECTION
+    hallucination_context = "i did not mention" in transcript_text or "as i mentioned" in transcript_text
+    # Task Amnesia: Dropping the ball mid-call (Generic greeting after significant dialogue)
+    task_amnesia = "how can i help you" in transcript_text and len(transcript_text) > 150
+    # Identity Collapse: Forgetting who/what she is
+    identity_collapse = any(phrase in transcript_text for phrase in ["who is this", "what is the purpose", "i am a human", "why did i call"])
+    # Self-Correction: AI catching its own mistake
+    self_correction = any(phrase in transcript_text for phrase in ["i apologize, i misspoke", "allow me to correct that", "i am sorry, i meant"])
+    # Availability Hallucination: This would be expanded with logic comparing to JADE_NODES
+    hallucination_availability = False # Placeholder for node-comparison logic
+
+    # 🏛️ 5. PERFORMANCE (LATENCY) TRACKING
+    processing_time = (datetime.now() - start_time).total_seconds()
+    latency_violation = processing_time > 2.5
+
+    # 🏛️ 6. TIER TRIAGE
+    tier_level = "Tier 3 (Bilingual)" if (user_requested_spanish or is_spanish) else "Tier 1 (Standard)"
+
+    # 🏛️ 7. ACTION LOG COMPILATION (PORT 8001 DASHBOARD)
+    # We collect all actions performed into this list
+    action_log = [f"Tier: {tier_level}"]
     
-    if double_greeting: risk_flags.append("🟣 IDENTITY_REPETITION")
-    if spanish_loop: risk_flags.append("🔵 LINGUISTIC_DNA: PERMISSION_LOOP")
-    if self_correction: risk_flags.append("⚖️ SELF_CORRECTION_LOGGED")
-    if is_hang_up: risk_flags.append("📞 SESSION_DISPOSITION: HANG_UP")
+    # Task Actions
+    if scheduling_success: action_log.append("✅ scheduling_success")
+    if scheduling_success: action_log.append("✅ appt_scheduled")
+    if scheduling_failure: action_log.append("❌ scheduling_failure")
+    if appt_cancelled: action_log.append("❌ appt_cancelled")
+    if any(k in transcript_text for k in ["schedule", "appointment"]) and not (scheduling_success or scheduling_failure):
+        action_log.append("📡 DISPATCH")
+
+    # Integrity & Hallucination (Orange Circles)
+    if hallucination_context: action_log.append("🟠 HALLUCINATION_CONTEXT")
+    if task_amnesia: action_log.append("🟠 HALLUCINATION_AMNESIA")
+    if identity_collapse: action_log.append("🟠 HALLUCINATION_IDENTITY")
+    if hallucination_availability: action_log.append("🟠 HALLUCINATION_AVAILABILITY")
     
-    # NEW: Add the Success Flag to the list
-    if scheduling_success: risk_flags.append("✅ SCHEDULING_SUCCESS_FLAG")
-    
-    # Check for deception
-    lies_detected = "i did not mention" in transcript_text
-    # NEW: Add the Deception Flag to the list so Port 8000 sees it
-    if lies_detected: risk_flags.append("🟠 DECEPTION_DETECTED")
+    # Logic & Flow (Purple Circles)
+    if self_correction: action_log.append("🟣 SELF_CORRECTION")
+    if double_greeting: action_log.append("🟣 IDENTITY_REPETITION")
 
-    # 🏛️ 5. FINAL VERDICT LOGIC
-    status = "PASS"
-    emoji = "🟢"
+    # Performance & Language
+    if latency_violation: action_log.append("⏳ LATENCY_VIOLATION")
+    if user_requested_spanish: action_log.append("🔵 ENGLISH-SPANISH")
+    if user_requested_english: action_log.append("🔵 SPANISH-ENGLISH")
 
-    if lies_detected:
-        status, emoji = "CRITICAL FAIL (Lying)", "🔴"
-    elif self_correction:
-        status, emoji = "PASS (Corrected)", "⚖️"
-    # UPDATED: Only show DISPATCH if not yet confirmed
-    elif not scheduling_success and any(k in transcript_text for k in ["schedule", "appointment", "calendar", "available"]):
-        status, emoji = "DISPATCH", "📡"
-    elif tier_level == "Tier 3 (Bilingual)":
-        status, emoji = "PASS (Linguistic)", "🔵"
+    # 🏛️ 8. NEUTRAL STATUS MAPPING (Port 8001 - No Pass/Fail)
+    if scheduling_failure or appt_cancelled:
+        status, emoji = "ACTION: TASK_FAILED_OR_CANCELLED", "❌"
+    elif scheduling_success:
+        status, emoji = "ACTION: APPT_CONFIRMED", "✅"
+    elif identity_collapse or task_amnesia or hallucination_context:
+        status, emoji = "ACTION: INTEGRITY_RISK_DETECTED", "🟠"
+    else:
+        status, emoji = "ACTION: MONITORING_SESSION", "⚖️"
 
-    # 🏛️ 6. DUAL BROADCAST
+    # 🏛️ 9. DUAL BROADCAST
+    # Port 8000 receives this data to perform the "Judge" function (Pass/Fail)
     try:
-        audit_to_ndfe(status, emoji, risk_flags, transcript_text)
+        audit_to_ndfe(status, emoji, action_log, transcript_text)
     except Exception as e:
         print(f"📡 NDFE BRIDGE OFFLINE: {e}")
 
-    save_to_vault(status, emoji, risk_flags, transcript_text)
+    # Port 8001 records the flight data neutrally
+    save_to_vault(status, emoji, action_log, transcript_text)
 
-    # 🏛️ 6. DUAL BROADCAST
-    # This ensures Port 8000 (NDFE) and Port 8001 (Ledger) get the exact same data
-    try:
-        audit_to_ndfe(status, emoji, risk_flags, transcript_text)
-    except Exception as e:
-        print(f"📡 NDFE BRIDGE OFFLINE: {e}")
-
-    save_to_vault(status, emoji, risk_flags, transcript_text)
-
-    # 🏛️ 7. SINGLE EXIT POINT
-    # The function ends here, ensuring all logic above was processed.
     return {
-        "status": "monitored", 
-        "verdict": status, 
+        "status": "logged", 
+        "action": status, 
         "tier": tier_level
     }
 
