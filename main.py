@@ -1,4 +1,3 @@
-import re
 import os
 import json
 import psycopg2
@@ -7,7 +6,6 @@ from datetime import datetime, timedelta, timezone
 from psycopg2.extras import RealDictCursor
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
-from textblob import TextBlob
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
