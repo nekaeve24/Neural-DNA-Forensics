@@ -118,10 +118,6 @@ JADE_NODES = {
 app = FastAPI()
 init_db()
 
-# --- 3. APP INITIALIZATION ---
-app = FastAPI()
-init_db()
-
 @app.post("/audit")
 async def relay_audit(request: Request):
     """Bridge Relay: Receives cloud dispatches and pushes to Terminal 1"""
@@ -137,7 +133,6 @@ async def relay_audit(request: Request):
     except Exception as e:
         print(f"❌ RELAY ERROR: {e}")
         return {"status": "relay_failed", "error": str(e)}
-# INSERT THE CODE ABOVE THIS LINE
 
 def save_to_vault(verdict, emoji, risks, transcript):
     """Writing all NEnterprise interactions to the Permanent Ledger and Audit Bridge"""
