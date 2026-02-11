@@ -264,65 +264,73 @@ async def audit_call(request: Request):
     # 🏛️ 1. LINGUISTIC & SELF-CORRECTION DETECTION
     user_requested_spanish = any(w in transcript_text for w in ["spanish speaker", "habla español", "speak spanish"])
     is_spanish = any(w in transcript_text for w in ["hola", "gracias", "por favor", "espanol"])
-    
-    # Logic Slip: Detect JADE's apology for the English/Spanish mix-up
     self_correction = any(phrase in transcript_text for phrase in ["apologize for the confusion", "allow me to check"])
-    
-    # Linguistic DNA: Detect the "Permission Loop" (asking twice)
     spanish_loop = transcript_text.count("continuar esta conversación en español") > 1
 
     # 🏛️ 2. IDENTITY & DISPOSITION DETECTION
-    # Intro: Detect double greeting ("hi this is jay" twice)
     double_greeting = transcript_text.count("hi this is jay") > 1
-    
-    # End of Call: Detect hang up/drop
     is_hang_up = call_status in ["ended", "completed"]
 
     # 🏛️ 3. TIER TRIAGE
-    if user_requested_spanish or is_spanish:
-        tier_level = "Tier 3 (Bilingual)"
-    else:
-        tier_level = "Tier 1 (Standard)"
+    tier_level = "Tier 3 (Bilingual)" if (user_requested_spanish or is_spanish) else "Tier 1 (Standard)"
 
-    # 🏛️ 4. DISPATCH & FORENSIC MARKERS
-    if any(k in transcript_text for k in ["schedule", "appointment", "calendar", "available"]):
-        forensic_risks = [f"Cascaded to {tier_level}"]
-        
-        # Apply the forensic flags you requested
-        if double_greeting: forensic_risks.append("🟣 IDENTITY_REPETITION")
-        if spanish_loop: forensic_risks.append("🔵 LINGUISTIC_DNA: PERMISSION_LOOP")
-        if self_correction: forensic_risks.append("⚖️ SELF_CORRECTION_LOGGED")
-        if is_hang_up: forensic_risks.append("📞 SESSION_DISPOSITION: HANG_UP")
+# 🏛️ 4. FORENSIC RISK COMPILATION
+    # NEW: Define scheduling success so the flag can trigger
+    scheduling_success = any(k in transcript_text for k in ["confirmed", "scheduled", "appointment set", "got you down"])
 
-        # Update verdict status for the Ledger
-        status = "PASS (Corrected)" if self_correction else "DISPATCH"
-        emoji = "⚖️" if self_correction else "📡"
+    risk_flags = [f"Monitored on {tier_level}"]
+    
+    if double_greeting: risk_flags.append("🟣 IDENTITY_REPETITION")
+    if spanish_loop: risk_flags.append("🔵 LINGUISTIC_DNA: PERMISSION_LOOP")
+    if self_correction: risk_flags.append("⚖️ SELF_CORRECTION_LOGGED")
+    if is_hang_up: risk_flags.append("📞 SESSION_DISPOSITION: HANG_UP")
+    
+    # NEW: Add the Success Flag to the list
+    if scheduling_success: risk_flags.append("✅ SCHEDULING_SUCCESS_FLAG")
+    
+    # Check for deception
+    lies_detected = "i did not mention" in transcript_text
+    # NEW: Add the Deception Flag to the list so Port 8000 sees it
+    if lies_detected: risk_flags.append("🟠 DECEPTION_DETECTED")
 
-        save_to_vault(status, emoji, forensic_risks, transcript_text)
-        return {"status": "scheduling", "availability_summary": f"Matched with {tier_level} Executive."}
-
-    # Standard monitored pass
-    save_to_vault("PASS", "🟢", [f"Monitored on {tier_level}"], transcript_text)
-    return {"status": "monitored", "verdict": "PASS"}
-
-    # FINAL VERDICT LOGIC
-    # Switch to blue circles (🔵) for linguistic passes as requested
+    # 🏛️ 5. FINAL VERDICT LOGIC
     status = "PASS"
     emoji = "🟢"
-    if lies_detected: status, emoji = "CRITICAL FAIL (Lying)", "🔴"
-    elif risk_flags: status, emoji = "WARN (Risk Flags)", "🟠"
-    elif tier == 3: status, emoji = "PASS (Linguistic)", "🔵"
 
-    forensic_payload = lies_detected + risk_flags + ([f"Monitored on {found_tier}" if 'found_tier' in locals() else "Monitored Intake"])
+    if lies_detected:
+        status, emoji = "CRITICAL FAIL (Lying)", "🔴"
+    elif self_correction:
+        status, emoji = "PASS (Corrected)", "⚖️"
+    # UPDATED: Only show DISPATCH if not yet confirmed
+    elif not scheduling_success and any(k in transcript_text for k in ["schedule", "appointment", "calendar", "available"]):
+        status, emoji = "DISPATCH", "📡"
+    elif tier_level == "Tier 3 (Bilingual)":
+        status, emoji = "PASS (Linguistic)", "🔵"
 
-    # CRITICAL: BROADCAST TO NDFE (PORT 8000) BEFORE VAULT SAVE
+    # 🏛️ 6. DUAL BROADCAST
     try:
-        audit_to_ndfe(status, emoji, forensic_payload, transcript_text)
+        audit_to_ndfe(status, emoji, risk_flags, transcript_text)
     except Exception as e:
         print(f"📡 NDFE BRIDGE OFFLINE: {e}")
 
-    save_to_vault(status, emoji, forensic_payload, transcript_text)
-    return {"status": "monitored", "verdict": status}
+    save_to_vault(status, emoji, risk_flags, transcript_text)
+
+    # 🏛️ 6. DUAL BROADCAST
+    # This ensures Port 8000 (NDFE) and Port 8001 (Ledger) get the exact same data
+    try:
+        audit_to_ndfe(status, emoji, risk_flags, transcript_text)
+    except Exception as e:
+        print(f"📡 NDFE BRIDGE OFFLINE: {e}")
+
+    save_to_vault(status, emoji, risk_flags, transcript_text)
+
+    # 🏛️ 7. SINGLE EXIT POINT
+    # The function ends here, ensuring all logic above was processed.
+    return {
+        "status": "monitored", 
+        "verdict": status, 
+        "tier": tier_level
+    }
 
 @app.get("/data", response_class=HTMLResponse)
 async def get_dashboard():
