@@ -110,14 +110,11 @@ init_db()
 
 @app.post("/audit")
 async def relay_audit(request: Request):
-    try:
+    try: # Properly indent the try block
         data = await request.json()
         print(f"📥 VAULT RECEIPT: Dispatching to Local Monitor...")
 
-        try:
-            requests.post("http://whitney-untwinned-unfervidly.ngrok-free.dev/audit", json=data, timeout=0.1)
-        except:
-            pass 
+        requests.post("http://whitney-untwinned-unfervidly.ngrok-free.dev/audit", json=data, timeout=1.0)
 
         return {"status": "vault_relayed"} 
     except Exception as e:
@@ -258,7 +255,6 @@ def delete_calendar_event(calendar_id, start_time_str):
 # --- 4. THE CORE FORENSIC & DISPATCH ENGINE ---
 @app.post("/audit-call")
 async def audit_call(request: Request):
-    save_to_vault(status, emoji, action_log, transcript_text)
     start_time = datetime.now()
     data = await request.json()
     call_status = data.get('message', {}).get('call', {}).get('status')
