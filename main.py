@@ -3,7 +3,6 @@ import os
 import json
 import psycopg2
 import requests
-import urllib3
 from datetime import datetime, timedelta, timezone
 from psycopg2.extras import RealDictCursor
 from fastapi import FastAPI, Request
@@ -22,9 +21,6 @@ def dispatch_audit(payload):
             pass
 
 # --- 0. THE AUDIT BRIDGE (Option 1 Implementation) ---
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 def audit_to_ndfe(status, emoji, risks, transcript):
     try:
         est_tz = timezone(timedelta(hours=-5))
@@ -37,15 +33,8 @@ def audit_to_ndfe(status, emoji, risks, transcript):
             "source": "JADE_ASSIST"
         }
         # Dispatches data to the NDFE Brain on Port 8000
-        # verify=False is the specific fix for your [SSL: WRONG_VERSION_NUMBER] error
-        requests.post(
-            "https://whitney-untwinned-unfervidly.ngrok-free.dev/audit", 
-            json=payload, 
-            timeout=0.5, 
-            verify=False
-        )
-    except Exception as e:
-        print(f"📡 BRIDGE ERROR: {e}")
+        requests.post("https://whitney-untwinned-unfervidly.ngrok-free.dev/audit", json=payload, timeout=0.5)
+    except Exception:
         pass
 
 def is_within_office_hours(dt):
@@ -121,18 +110,12 @@ init_db()
 
 @app.post("/audit")
 async def relay_audit(request: Request):
-    try:
+    try: # Properly indent the try block
         data = await request.json()
         print(f"📥 VAULT RECEIPT: Dispatching to Local Monitor...")
 
-        # V1 REDUNDANCY: Use HTTPS but bypass the version check
         try:
-            requests.post(
-                "https://whitney-untwinned-unfervidly.ngrok-free.dev/audit", 
-                json=data, 
-                timeout=0.1, 
-                verify=False
-            )
+            requests.post("http://whitney-untwinned-unfervidly.ngrok-free.dev/audit", json=data, timeout=0.1)
         except:
             pass 
 
@@ -417,13 +400,7 @@ async def audit_call(request: Request):
     
     if user_frustration:
         action_log.append("🚩 USER_FRUSTRATION_DETECTED")
-
-    # V1 REDUNDANCY: Forces P8000 to update even if forensic logic is slow
-    try:
-        requests.post("http://whitney-untwinned-unfervidly.ngrok-free.dev/audit", json=data, timeout=0.1)
-    except:
-        pass
-
+        
     save_to_vault(status, emoji, action_log, transcript_text)
     return {
         "status": "monitored", 
