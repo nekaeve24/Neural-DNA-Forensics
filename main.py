@@ -400,12 +400,6 @@ async def audit_call(request: Request):
     
     if user_frustration:
         action_log.append("🚩 USER_FRUSTRATION_DETECTED")
-    
-    # Define defaults first so the script can't crash mid-way
-    status = "ACTION: MONITORING_SESSION"
-    emoji = "⚖️"
-    action_log = []
-    transcript_text = ""
 
     # V1 REDUNDANCY: Forces P8000 to update even if forensic logic is slow
     try:
