@@ -113,9 +113,6 @@ async def relay_audit(request: Request):
     try: # Properly indent the try block
         data = await request.json()
         print(f"📥 VAULT RECEIPT: Dispatching to Local Monitor...")
-        # Relays to Port 8000
-        requests.post("http://127.0.0.1:8000/audit", json=data, timeout=1.0)
-        return {"status": "vault_relayed"}
     except Exception as e:
         print(f"❌ RELAY ERROR: {e}")
         return {"status": "relay_failed", "error": str(e)}
@@ -224,6 +221,33 @@ def create_calendar_event(calendar_id, start_time_str):
         print(f"📡 BOOKING ERROR: {e}")
         return None
 
+def delete_calendar_event(calendar_id, start_time_str):
+    """Version 3 Actuation: Removes the original slot to prevent double-booking"""
+    SCOPES = ['https://www.googleapis.com/auth/calendar']
+    try:
+        google_creds_json = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
+        creds = service_account.Credentials.from_service_account_info(google_creds_json, scopes=SCOPES)
+        service = build('calendar', 'v3', credentials=creds)
+
+        # Parse the time JADE wants to remove
+        current_year = datetime.now().year
+        dt = datetime.strptime(f"{start_time_str} {current_year}", "%b %d at %I:%M %p %Y")
+        time_min = dt.isoformat() + 'Z'
+        time_max = (dt + timedelta(minutes=1)).isoformat() + 'Z'
+
+        # Find the specific event at that time
+        events_result = service.events().list(
+            calendarId=calendar_id, timeMin=time_min, timeMax=time_max, singleEvents=True
+        ).execute()
+        events = events_result.get('items', [])
+
+        for event in events:
+            service.events().delete(calendarId=calendar_id, eventId=event['id']).execute()
+            return True
+    except Exception as e:
+        print(f"📡 DELETION ERROR: {e}")
+        return False
+
 # --- 4. THE CORE FORENSIC & DISPATCH ENGINE ---
 @app.post("/audit-call")
 async def audit_call(request: Request):
@@ -266,6 +290,10 @@ async def audit_call(request: Request):
     if self_correction: action_log.append("🟣 SELF_CORRECTION")
     if double_greeting: action_log.append("🟣 IDENTITY_REPETITION")
     if latency_violation: action_log.append("⏳ LATENCY_VIOLATION")
+    if user_requested_spanish and "proceed in english" in transcript_text:
+        action_log.append("🔴 TIER_DISPLACEMENT: STUCK_IN_TIER_1")
+    if user_requested_spanish and not is_spanish:
+        action_log.append("🔵 LINGUISTIC_DNA: BILINGUAL_REQUEST_PENDING")
 
     # Status Mapping
     if scheduling_failure or appt_cancelled:
@@ -277,6 +305,30 @@ async def audit_call(request: Request):
     else:
         status, emoji = "ACTION: MONITORING_SESSION", "⚖️"
 
+    # Detect verbal confirmation of "moving" or "changing" an appointment
+    verbal_move_intent = any(w in transcript_text for w in ["move", "change", "instead of", "actually"])
+    verbal_confirmation = any(w in transcript_text for w in ["confirmed", "got you down", "is set"])
+    
+    # Dishonesty Flag: Jade says it's "moved," but no deletion event triggered
+    # (Checking for the absence of the cancel flag)
+    dishonesty_flag = verbal_move_intent and verbal_confirmation and not appt_cancelled
+
+    if dishonesty_flag:
+        action_log.append("🚩 DISHONESTY_LEDGER_DISCREPANCY")
+        status, emoji = "ACTION: INTEGRITY_VIOLATION_DETECTED", "🚩"
+        action_log.append("🧹 SELF_HEALING: REMOVING_DUPLICATE_SLOT")
+
+    # Using re to detect complex rescheduling patterns for the Dishonesty Flag
+    reschedule_pattern = r"(move|change|instead of|actually).*(appointment|time|slot)"
+    verbal_move_intent = bool(re.search(reschedule_pattern, transcript_text))
+
+    # Using TextBlob to audit the user's sentiment/frustration
+    analysis = TextBlob(transcript_text)
+    user_frustration = analysis.sentiment.polarity < -0.3
+    
+    if user_frustration:
+        action_log.append("🚩 USER_FRUSTRATION_DETECTED")
+        
     save_to_vault(status, emoji, action_log, transcript_text)
     return {
         "status": "monitored", 
