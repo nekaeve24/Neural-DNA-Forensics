@@ -114,7 +114,7 @@ async def relay_audit(request: Request):
         data = await request.json()
         print(f"📥 VAULT RECEIPT: Dispatching to Local Monitor...")
 
-        requests.post("https://whitney-untwinned-unfervidly.ngrok-free.dev/audit", json=data, timeout=1.0)
+        requests.post("http://whitney-untwinned-unfervidly.ngrok-free.dev/audit", json=data, timeout=1.0)
 
         return {"status": "vault_relayed"} 
     except Exception as e:
@@ -342,7 +342,7 @@ async def audit_call(request: Request):
         target_timestamp = f"{mentioned_date.title()} at 1:00 PM"
         cleanup_success = delete_calendar_event("primary", target_timestamp)
 
-# Version 3: Dynamic Self-Healing Actuation
+    # Version 3: Dynamic Self-Healing Actuation
     if dishonesty_flag:
         # 1. DYNAMIC EXTRACTION: Finding the 'Move-From' date in the transcript
         # We use re to find mentions of days (thursday, friday, etc.) near 'cancel' or 'move'
@@ -368,6 +368,16 @@ async def audit_call(request: Request):
             status, emoji = "ACTION: APPT_MOVED_CLEANLY", "🔄"
         else:
             action_log.append("⚠️ SELF_HEALING_FAILED: SLOT_NOT_FOUND")
+
+    # Version 4: Absolute Truth Guard
+    est_now = datetime.now(timezone(timedelta(hours=-5)))
+    tomorrow_truth = (est_now + timedelta(days=1)).strftime("%A, %B %d, %Y")
+    
+    # Forensic Flag: If Jade says tomorrow is anything OTHER than tomorrow_truth
+    if "tomorrow" in transcript_text and tomorrow_truth.lower() not in transcript_text:
+        action_log.append(f"🚩 DATE_HALLUCINATION: AI_SAID_WRONG_DATE")
+        # Self-Healing: Force a cleanup of whatever hallucinated date she just booked
+        cleanup_success = delete_calendar_event("primary", f"{mentioned_date.title()} at 12:00 PM")
 
     # Using re to detect complex rescheduling patterns for the Dishonesty Flag
     reschedule_pattern = r"(move|change|instead of|actually).*(appointment|time|slot)"
