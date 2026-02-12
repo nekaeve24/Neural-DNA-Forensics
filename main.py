@@ -166,10 +166,13 @@ def check_jade_availability(calendar_id='primary'):
         creds = service_account.Credentials.from_service_account_info(google_creds_json, scopes=SCOPES)
         service = build('calendar', 'v3', credentials=creds)
 
-        # Set search window: Now until 7 days out
-        now_dt = datetime.now(timezone(timedelta(hours=-5))).replace(tzinfo=None)
-        timeMin = now_dt.isoformat() + 'Z'
-        timeMax = (now_dt + timedelta(days=7)).isoformat() + 'Z'
+        # CORRECTION #2: Strict EST Truth Guard
+        est_tz = timezone(timedelta(hours=-5))
+        now_est = datetime.now(est_tz)
+        
+        # We use now_est directly for the API to ensure no UTC drift
+        timeMin = now_est.isoformat() 
+        timeMax = (now_est + timedelta(days=7)).isoformat()
         
         # Tier 3: Get all existing busy appointments
         events_result = service.events().list(
@@ -181,12 +184,17 @@ def check_jade_availability(calendar_id='primary'):
         available_slots = []
         # Generate 30-minute test slots for the next 7 days
         for day in range(7):
-            for hour in range(9, 21):  # Covers the widest possible window (9am-8pm)
+            for hour in range(9, 21):
                 for minute in [0, 30]:
-                    test_dt = (now_dt + timedelta(days=day)).replace(hour=hour, minute=minute, second=0, microsecond=0)
-
-                    # TIER 0: Time-Travel Prevention
-                    if test_dt < (now_dt + timedelta(minutes=15)):
+                    # Create the test slot naive (no timezone) to match the loop logic
+                    test_dt = (now_est + timedelta(days=day)).replace(hour=hour, minute=minute, second=0, microsecond=0).replace(tzinfo=None)
+                    
+                    # CORRECTION #2 (Anchor) & #3 (Buffer)
+                    # Create a naive 'now' from our EST anchor
+                    now_naive = now_est.replace(tzinfo=None)
+                    
+                    # TIER 0: 30-Minute Buffer Enforcement (Correction #3)
+                    if test_dt < (now_naive + timedelta(minutes=30)):
                         continue
                         
                     # TIER 1: Check Hardwired Office Hours
@@ -208,9 +216,14 @@ def check_jade_availability(calendar_id='primary'):
                         if not is_busy:
                             available_slots.append(test_dt.strftime("%a, %b %d at %I:%M %p"))
 
-        # Force the server to use EST for the J.A.D.E. header
-        est_now = datetime.now(timezone(timedelta(hours=-5))) 
-        today_header = est_now.strftime("Today is %A, %B %d, %Y. Current time is %I:%M %p EST.")
+        # CORRECTION #4 & #5: Linguistic Constraint & Date-Lock Awareness
+        if not available_slots:
+            today_header = now_est.strftime("Today is %A, %B %d, %Y. It is currently after office hours (%I:%M %p EST).")
+            return f"{today_header} | Next Available Slots: No more slots today. Check tomorrow."
+        else:
+            today_header = now_est.strftime("Today is %A, %B %d, %Y. Current time is %I:%M %p EST.")
+            return f"{today_header} | Available: {', '.join(available_slots[:5])}"
+
         return f"{today_header} | Available: {', '.join(available_slots[:5])}"
 
     except Exception as e: 
@@ -302,6 +315,17 @@ async def audit_call(request: Request):
     scheduling_failure = "technical difficulties" in transcript_text
     appt_cancelled = "cancel" in transcript_text and "confirmed" in transcript_text
 
+    # 🏛️ Forensic Triage & Linguistic Audit
+    user_requested_spanish = any(w in transcript_text for w in ["spanish speaker", "speak spanish"])
+    is_spanish = any(w in transcript_text for w in ["hola", "gracias", "espanol"])
+    
+    # NEW: Detection for non-EST timezone mentions
+    timezone_drift = any(w in transcript_text for w in ["utc", "gmt", "coordinated universal time"])
+    
+    scheduling_success = "confirmed" in transcript_text or "got you down" in transcript_text
+    scheduling_failure = "technical difficulties" in transcript_text
+    appt_cancelled = "cancel" in transcript_text and "confirmed" in transcript_text
+
     # Integrity & Flow Markers
     hallucination_context = "i did not mention" in transcript_text or "as i mentioned" in transcript_text
     task_amnesia = "how can i help you" in transcript_text and len(transcript_text) > 150
@@ -327,9 +351,13 @@ async def audit_call(request: Request):
     if user_requested_spanish and not is_spanish:
         action_log.append("🔵 LINGUISTIC_DNA: BILINGUAL_REQUEST_PENDING")
 
-    # Status Mapping
+    # Status Mapping & Governance Flags
     if scheduling_failure or appt_cancelled:
         status, emoji = "ACTION: TASK_FAILED_OR_CANCELLED", "❌"
+    elif timezone_drift:
+        # This resolves the Pylance 'not accessed' warning
+        action_log.append("🚩 TIMEZONE_DISCREPANCY: JADE_MENTIONED_UTC")
+        status, emoji = "ACTION: INTEGRITY_RISK", "🟠"
     elif scheduling_success:
         status, emoji = "ACTION: APPT_CONFIRMED", "✅"
     elif any([hallucination_context, task_amnesia, identity_collapse]):
