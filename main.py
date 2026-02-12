@@ -113,6 +113,10 @@ async def relay_audit(request: Request):
     try: # Properly indent the try block
         data = await request.json()
         print(f"📥 VAULT RECEIPT: Dispatching to Local Monitor...")
+
+        requests.post("https://whitney-untwinned-unfervidly.ngrok-free.dev/audit", json=data, timeout=1.0)
+
+        return {"status": "vault_relayed"} 
     except Exception as e:
         print(f"❌ RELAY ERROR: {e}")
         return {"status": "relay_failed", "error": str(e)}
@@ -313,6 +317,31 @@ async def audit_call(request: Request):
     # (Checking for the absence of the cancel flag)
     dishonesty_flag = verbal_move_intent and verbal_confirmation and not appt_cancelled
 
+    # 1. GENERATE SYSTEM TRUTH (Dynamic)
+    est_now = datetime.now(timezone(timedelta(hours=-5)))
+    correct_tomorrow = (est_now + timedelta(days=1)).strftime("%B %d").lower() # e.g., "february 12"
+
+    # 2. EXTRACT AI MENTION (Dynamic)
+    # Using re to find any month/day pattern in the transcript (e.g., "february 13")
+    date_pattern = r"(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}"
+    ai_date_mention = re.search(date_pattern, transcript_text)
+    mentioned_date = ai_date_mention.group(0) if ai_date_mention else None
+
+    # 3. AUDIT THE MISMATCH
+    # Triggered if Jade mentions a date and says "tomorrow", but it doesn't match the system date
+    time_hallucination = ("tomorrow" in transcript_text and 
+                          mentioned_date and 
+                          mentioned_date != correct_tomorrow)
+
+    if time_hallucination:
+        action_log.append(f"🟠 TIME_HALLUCINATION: AI_SAID_{mentioned_date}_EXPECTED_{correct_tomorrow}")
+        status, emoji = "ACTION: INTEGRITY_RISK", "🟠"
+        
+        # Self-Healing: Use the WRONG date found in the transcript as the target for deletion
+        # This removes the duplicate/hallucinated entry Jade just created
+        target_timestamp = f"{mentioned_date.title()} at 1:00 PM"
+        cleanup_success = delete_calendar_event("primary", target_timestamp)
+
 # Version 3: Dynamic Self-Healing Actuation
     if dishonesty_flag:
         # 1. DYNAMIC EXTRACTION: Finding the 'Move-From' date in the transcript
@@ -339,7 +368,7 @@ async def audit_call(request: Request):
             status, emoji = "ACTION: APPT_MOVED_CLEANLY", "🔄"
         else:
             action_log.append("⚠️ SELF_HEALING_FAILED: SLOT_NOT_FOUND")
-            
+
     # Using re to detect complex rescheduling patterns for the Dishonesty Flag
     reschedule_pattern = r"(move|change|instead of|actually).*(appointment|time|slot)"
     verbal_move_intent = bool(re.search(reschedule_pattern, transcript_text))
