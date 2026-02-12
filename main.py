@@ -22,10 +22,10 @@ def dispatch_audit(payload):
 
 # --- 0. THE AUDIT BRIDGE (Option 1 Implementation) ---
 def audit_to_ndfe(status, emoji, risks, transcript):
-    """Sends audit data to Terminal 1 via network instead of direct import"""
     try:
+        est_tz = timezone(timedelta(hours=-5))
         payload = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(est_tz).isoformat(),
             "status": status,
             "emoji": emoji,
             "risks": risks,
@@ -35,7 +35,6 @@ def audit_to_ndfe(status, emoji, risks, transcript):
         # Dispatches data to the NDFE Brain on Port 8000
         requests.post("https://whitney-untwinned-unfervidly.ngrok-free.dev/audit", json=payload, timeout=0.5)
     except Exception:
-        # If Terminal 1 is unavailable, J.A.D.E. Assist continues uninterrupted
         pass
 
 def is_within_office_hours(dt):
@@ -43,24 +42,18 @@ def is_within_office_hours(dt):
     # Force dt into EST (-5 hours) for consistency with J.A.D.E. booking
     est_tz = timezone(timedelta(hours=-5))
     dt_est = dt.astimezone(est_tz)
-
-    # Monday (0) to Saturday (5): 9:00 AM - 8:00 PM EST
     if 0 <= dt_est.weekday() <= 5:
         return 9 <= dt_est.hour < 20
-    # Sunday (6): 12:00 PM - 4:00 PM EST
     if dt_est.weekday() == 6:
         return 12 <= dt_est.hour < 16
     return False
 
 # --- 1. THE SOVEREIGN VAULT (POSTGRESQL) ---
-# Hardwired Local Link - Try this first
 DATABASE_URL = "postgresql://postgres:aKDmjJPDwCCLqAGxdJfGXFHTSRbKrmkQ@caboose.proxy.rlwy.net:34965/railway"
 
 def get_db_connection():
-    """Safety Valve: Prevents the app from crashing if the Vault is offline"""
     try:
-        # If the URL is still a placeholder, don't even try to connect
-        if "your_actual_postgresql" in DATABASE_URL:
+        if "postgresql://postgres:aKDmjJPDwCCLqAGxdJfGXFHTSRbKrmkQ@caboose.proxy.rlwy.net:34965/railway" in DATABASE_URL:
             return None
         return psycopg2.connect(DATABASE_URL, sslmode='prefer')
     except Exception as e:
@@ -68,7 +61,6 @@ def get_db_connection():
         return None
 
 def init_db():
-    """Initializes the Permanent Audit Ledger - Now Crash-Proof"""
     try:
         conn = get_db_connection()
         if conn:
@@ -120,22 +112,17 @@ init_db()
 
 @app.post("/audit")
 async def relay_audit(request: Request):
-    """Bridge Relay: Receives cloud dispatches and pushes to Terminal 1"""
-    try:
+    try: # Properly indent the try block
         data = await request.json()
         print(f"📥 VAULT RECEIPT: Dispatching to Local Monitor...")
-        
-        # This relays the data to your Terminal 1 (Monitor) on Port 8000
-        # Replace the URL below with your actual Terminal 1 address if different
+        # Relays to Port 8000
         requests.post("http://127.0.0.1:8000/audit", json=data, timeout=1.0)
-        
         return {"status": "vault_relayed"}
     except Exception as e:
         print(f"❌ RELAY ERROR: {e}")
         return {"status": "relay_failed", "error": str(e)}
 
 def save_to_vault(verdict, emoji, risks, transcript):
-    """Writing all NEnterprise interactions to the Permanent Ledger and Audit Bridge"""
     conn = None
     try:
         conn = get_db_connection()
@@ -146,10 +133,7 @@ def save_to_vault(verdict, emoji, risks, transcript):
         )
         conn.commit()
         cur.close()
-        
-        # Option 1: Trigger the network-based audit instead of a local function call
         audit_to_ndfe(verdict, emoji, risks, transcript)
-        
     except Exception as e:
         print(f"⚖️ VAULT ERROR: {e}")
     finally:
@@ -245,6 +229,7 @@ def create_calendar_event(calendar_id, start_time_str):
 # --- 4. THE CORE FORENSIC & DISPATCH ENGINE ---
 @app.post("/audit-call")
 async def audit_call(request: Request):
+    start_time = datetime.now()
     data = await request.json()
     call_status = data.get('message', {}).get('call', {}).get('status')
     transcript_text = str(data.get('message', {}).get('transcript', '')).lower()
@@ -256,38 +241,45 @@ async def audit_call(request: Request):
             return {"status": "archived"}
         return {"status": "monitoring_active"}
 
-    # 🏛️ 1. LINGUISTIC & SELF-CORRECTION DETECTION
-    user_requested_spanish = any(w in transcript_text for w in ["spanish speaker", "habla español", "speak spanish"])
-    is_spanish = any(w in transcript_text for w in ["hola", "gracias", "por favor", "espanol"])
-    self_correction = any(phrase in transcript_text for phrase in ["apologize for the confusion", "allow me to check"])
-    spanish_loop = transcript_text.count("continuar esta conversación en español") > 1
+    # 🏛️ Forensic Triage
+    user_requested_spanish = any(w in transcript_text for w in ["spanish speaker", "speak spanish"])
+    is_spanish = any(w in transcript_text for w in ["hola", "gracias", "espanol"])
+    scheduling_success = "confirmed" in transcript_text or "got you down" in transcript_text
+    scheduling_failure = "technical difficulties" in transcript_text
+    appt_cancelled = "cancel" in transcript_text and "confirmed" in transcript_text
 
-    # 🏛️ 2. IDENTITY & DISPOSITION DETECTION
+    # Integrity & Flow Markers
+    hallucination_context = "i did not mention" in transcript_text or "as i mentioned" in transcript_text
+    task_amnesia = "how can i help you" in transcript_text and len(transcript_text) > 150
+    identity_collapse = any(phrase in transcript_text for phrase in ["who is this", "purpose of the call"])
+    self_correction = "apologize for the confusion" in transcript_text
     double_greeting = transcript_text.count("hi this is jay") > 1
-    is_hang_up = call_status in ["ended", "completed"]
+    latency_violation = (datetime.now() - start_time).total_seconds() > 2.5
 
-    # 🏛️ 3. TIER TRIAGE
     tier_level = "Tier 3 (Bilingual)" if (user_requested_spanish or is_spanish) else "Tier 1 (Standard)"
-    risk_flags = [f"Monitored on {tier_level}"]
+    action_log = [f"Tier: {tier_level}"]
     
-    # Forensic DNA Markers
-    if double_greeting: risk_flags.append("🟣 IDENTITY_REPETITION")
-    if self_correction: risk_flags.append("⚖️ SELF_CORRECTION_LOGGED")
-    if spanish_loop: risk_flags.append("🔵 LINGUISTIC_DNA: PERMISSION_LOOP")
+    if scheduling_success: action_log.append("✅ scheduling_success")
+    if scheduling_failure: action_log.append("❌ scheduling_failure")
+    if appt_cancelled: action_log.append("❌ appt_cancelled")
+    if hallucination_context: action_log.append("🟠 HALLUCINATION_CONTEXT")
+    if task_amnesia: action_log.append("🟠 HALLUCINATION_AMNESIA")
+    if identity_collapse: action_log.append("🟠 HALLUCINATION_IDENTITY")
+    if self_correction: action_log.append("🟣 SELF_CORRECTION")
+    if double_greeting: action_log.append("🟣 IDENTITY_REPETITION")
+    if latency_violation: action_log.append("⏳ LATENCY_VIOLATION")
 
-    # 🏛️ 4. VERDICT MAPPING (PASS / FAIL / DISPATCH)
-    status, emoji = "PASS", "🟢"
-    
-    if "i did not mention" in transcript_text:
-        status, emoji = "CRITICAL FAIL (Lying)", "🔴"
-    elif any(k in transcript_text for k in ["schedule", "appointment"]):
-        status, emoji = "DISPATCH", "📡"
-    elif tier_level == "Tier 3 (Bilingual)":
-        status, emoji = "PASS (Linguistic)", "🔵"
+    # Status Mapping
+    if scheduling_failure or appt_cancelled:
+        status, emoji = "ACTION: TASK_FAILED_OR_CANCELLED", "❌"
+    elif scheduling_success:
+        status, emoji = "ACTION: APPT_CONFIRMED", "✅"
+    elif any([hallucination_context, task_amnesia, identity_collapse]):
+        status, emoji = "ACTION: INTEGRITY_RISK", "🟠"
+    else:
+        status, emoji = "ACTION: MONITORING_SESSION", "⚖️"
 
-    # Save to Ledger & Broadcast to Monitor
-    save_to_vault(status, emoji, risk_flags, transcript_text)
-
+    save_to_vault(status, emoji, action_log, transcript_text)
     return {
         "status": "monitored", 
         "verdict": status, 
