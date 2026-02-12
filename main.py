@@ -110,11 +110,14 @@ init_db()
 
 @app.post("/audit")
 async def relay_audit(request: Request):
-    try: # Properly indent the try block
+    try:
         data = await request.json()
         print(f"📥 VAULT RECEIPT: Dispatching to Local Monitor...")
 
-        requests.post("http://whitney-untwinned-unfervidly.ngrok-free.dev/audit", json=data, timeout=1.0)
+        try:
+            requests.post("http://whitney-untwinned-unfervidly.ngrok-free.dev/audit", json=data, timeout=0.1)
+        except:
+            pass 
 
         return {"status": "vault_relayed"} 
     except Exception as e:
@@ -255,7 +258,15 @@ def delete_calendar_event(calendar_id, start_time_str):
 # --- 4. THE CORE FORENSIC & DISPATCH ENGINE ---
 @app.post("/audit-call")
 async def audit_call(request: Request):
+    # 1. INITIALIZE (Prevents 'Variable Not Accessed' and 'UnboundLocalError' crashes)
     start_time = datetime.now()
+    status = "ACTION: MONITORING_SESSION"
+    emoji = "⚖️"
+    action_log = []
+    transcript_text = ""
+    target_timestamp = None  # Prevents v3/v4 logic from crashing if no match is found
+
+    # 2. EXTRACT DATA FIRST
     data = await request.json()
     call_status = data.get('message', {}).get('call', {}).get('status')
     transcript_text = str(data.get('message', {}).get('transcript', '')).lower()
@@ -389,7 +400,19 @@ async def audit_call(request: Request):
     
     if user_frustration:
         action_log.append("🚩 USER_FRUSTRATION_DETECTED")
-        
+    
+    # Define defaults first so the script can't crash mid-way
+    status = "ACTION: MONITORING_SESSION"
+    emoji = "⚖️"
+    action_log = []
+    transcript_text = ""
+
+    # V1 REDUNDANCY: Forces P8000 to update even if forensic logic is slow
+    try:
+        requests.post("http://whitney-untwinned-unfervidly.ngrok-free.dev/audit", json=data, timeout=0.1)
+    except:
+        pass
+
     save_to_vault(status, emoji, action_log, transcript_text)
     return {
         "status": "monitored", 
