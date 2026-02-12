@@ -25,10 +25,11 @@ def dispatch_audit(payload):
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-def audit_to_ndfe(status, emoji, risks, transcript):
+def audit_to_ndfe(status, emoji, risks, transcript, shared_id):
     try:
         est_tz = timezone(timedelta(hours=-5))
         payload = {
+            "shared_id": shared_id, # <--- Linkage DNA
             "timestamp": datetime.now(est_tz).isoformat(),
             "status": status,
             "emoji": emoji,
@@ -37,9 +38,8 @@ def audit_to_ndfe(status, emoji, risks, transcript):
             "source": "JADE_ASSIST"
         }
         # Dispatches data to the NDFE Brain on Port 8000
-        # verify=False is the specific fix for your [SSL: WRONG_VERSION_NUMBER] error
         requests.post(
-            "http://whitney-untwinned-unfervidly.ngrok-free.dev/audit", 
+            "http://127.0.0.1:8000/audit", 
             json=payload, 
             timeout=0.5, 
             verify=False
@@ -141,7 +141,7 @@ async def relay_audit(request: Request):
         print(f"❌ RELAY ERROR: {e}")
         return {"status": "relay_failed", "error": str(e)}
 
-def save_to_vault(verdict, emoji, risks, transcript):
+def save_to_vault(verdict, emoji, risks, transcript, shared_id):
     conn = None
     try:
         conn = get_db_connection()
@@ -152,7 +152,8 @@ def save_to_vault(verdict, emoji, risks, transcript):
         )
         conn.commit()
         cur.close()
-        audit_to_ndfe(verdict, emoji, risks, transcript)
+        # This triggers the bridge to Port 8000 with the linked ID
+        audit_to_ndfe(verdict, emoji, risks, transcript, shared_id)
     except Exception as e:
         print(f"⚖️ VAULT ERROR: {e}")
     finally:
@@ -288,23 +289,21 @@ def delete_calendar_event(calendar_id, start_time_str):
 # --- 4. THE CORE FORENSIC & DISPATCH ENGINE ---
 @app.post("/audit-call")
 async def audit_call(request: Request):
-    # 1. INITIALIZE (Prevents 'Variable Not Accessed' and 'UnboundLocalError' crashes)
+    # 1. INITIALIZE & LINKAGE DNA
     start_time = datetime.now()
+    shared_id_base = int(start_time.timestamp()) # <--- Shared ID Base Created
     status = "ACTION: MONITORING_SESSION"
     emoji = "⚖️"
     action_log = []
-    transcript_text = ""
-    target_timestamp = None  # Prevents v3/v4 logic from crashing if no match is found
-
-    # 2. EXTRACT DATA FIRST
+    
+    # 2. EXTRACT DATA
     data = await request.json()
     call_status = data.get('message', {}).get('call', {}).get('status')
     transcript_text = str(data.get('message', {}).get('transcript', '')).lower()
 
-    # SOVEREIGN GUARD: End-of-Session Integrity
     if not transcript_text.strip():
         if call_status in ["ended", "completed"]:
-            save_to_vault("PASS", "✅", ["Session Closed Cleanly"], "Heartbeat Only")
+            save_to_vault("PASS", "✅", ["Session Closed Cleanly"], "Heartbeat Only", shared_id_base)
             return {"status": "archived"}
         return {"status": "monitoring_active"}
 
@@ -452,10 +451,26 @@ async def audit_call(request: Request):
     except:
         pass
 
-    save_to_vault(status, emoji, action_log, transcript_text)
+# --- 3. ENHANCED LINKED DATA PAYLOAD ---
+    audit_payload = {
+        "shared_id": shared_id_base,
+        "transcript": transcript_text,
+        "result": "PASS" if "✅" in emoji else "FAIL" if "❌" in emoji else "MONITOR",
+        "jade_flags": action_log 
+    }
+
+    # --- 4. DISPATCH WITH LINKED ID ---
+    try:
+        requests.post("http://127.0.0.1:8000/audit", json=audit_payload, timeout=0.1)
+    except:
+        pass
+
+    save_to_vault(status, emoji, action_log, transcript_text, shared_id_base)
+    
     return {
         "status": "monitored", 
         "verdict": status, 
+        "shared_id": shared_id_base,
         "tier": tier_level
     }
 
