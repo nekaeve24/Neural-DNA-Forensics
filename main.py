@@ -39,7 +39,7 @@ def audit_to_ndfe(status, emoji, risks, transcript):
         # Dispatches data to the NDFE Brain on Port 8000
         # verify=False is the specific fix for your [SSL: WRONG_VERSION_NUMBER] error
         requests.post(
-            "https://whitney-untwinned-unfervidly.ngrok-free.dev/audit", 
+            "http://whitney-untwinned-unfervidly.ngrok-free.dev/audit", 
             json=payload, 
             timeout=0.5, 
             verify=False
@@ -128,7 +128,7 @@ async def relay_audit(request: Request):
         # V1 REDUNDANCY: Use HTTPS but bypass the version check
         try:
             requests.post(
-                "https://whitney-untwinned-unfervidly.ngrok-free.dev/audit", 
+                "http://whitney-untwinned-unfervidly.ngrok-free.dev/audit", 
                 json=data, 
                 timeout=0.1, 
                 verify=False
