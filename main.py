@@ -53,8 +53,6 @@ DATABASE_URL = "postgresql://postgres:aKDmjJPDwCCLqAGxdJfGXFHTSRbKrmkQ@caboose.p
 
 def get_db_connection():
     try:
-        if "postgresql://postgres:aKDmjJPDwCCLqAGxdJfGXFHTSRbKrmkQ@caboose.proxy.rlwy.net:34965/railway" in DATABASE_URL:
-            return None
         return psycopg2.connect(DATABASE_URL, sslmode='prefer')
     except Exception as e:
         print(f"⚠️ VAULT OFFLINE: {e}")
