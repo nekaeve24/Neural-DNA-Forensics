@@ -1,6 +1,8 @@
 import re
 import os
 import json
+from tkinter import font
+from turtle import width
 import psycopg2
 import requests
 import urllib3
@@ -474,6 +476,18 @@ async def audit_call(request: Request):
         "tier": tier_level
     }
 
+import requests
+
+def send_to_ndfe_live(call_data):
+    """Sends live call transcripts to the Forensic Monitor."""
+    url = "http://127.0.0.1:8000/process_audit" # Ensure this matches your route
+    try:
+        response = requests.post(url, json=call_data)
+        if response.status_code == 200:
+            print("✅ Forensic Audit Updated in Real-Time")
+    except Exception as e:
+        print(f"❌ Failed to reach NDFE: {e}")
+
 @app.get("/data", response_class=HTMLResponse)
 async def get_dashboard():
     """Renders the Sovereign Vault as a high-fidelity audit ledger"""
@@ -525,8 +539,8 @@ async def get_dashboard():
             <head>
                 <title>Audit Global Ledger</title>
                 <style>
-                    body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7f6; }}
-                    .container {{ max-width: 1100px; margin: 50px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }}
+                    body { font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7f6; }
+                    .container { max-width: 1400px; margin: 50px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
                     header {{ border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }}
                     table {{ width: 100%; border-collapse: collapse; }}
                     th {{ text-align: left; background: #f8f9fa; padding: 15px; color: #555; text-transform: uppercase; font-size: 0.8em; letter-spacing: 1px; }}
@@ -541,11 +555,10 @@ async def get_dashboard():
                     <table>
                     <thead>
                         <tr>
-                            <th style="width: 50px;">Status</th>
-                            <th>Verdict</th>
-                            <th style="width: 250px;">timestamp/id</th>
-                            <th>Forensic Risks Detected</th>
-                        </tr>
+                            <th style="width: 80px;">Status</th>
+                            <th style="width: 120px;">Verdict</th>
+                            <th style="width: 280px;">timestamp/id</th>
+                            <th>Forensic Risks Detected</th> </tr>
                     </thead>
                         <tbody>{rows}</tbody>
                     </table>
