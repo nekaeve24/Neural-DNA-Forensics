@@ -433,8 +433,9 @@ async def audit_call(request: Request):
     # Forensic Flag: If Jade says tomorrow is anything OTHER than tomorrow_truth
     if "tomorrow" in transcript_text and tomorrow_truth.lower() not in transcript_text:
         action_log.append(f"🚩 DATE_HALLUCINATION: AI_SAID_WRONG_DATE")
-        # Self-Healing: Force a cleanup of whatever hallucinated date she just booked
-        cleanup_success = delete_calendar_event("primary", f"{mentioned_date.title()} at 12:00 PM")
+        # FIXED: Only attempt self-healing if a date was actually captured
+        if mentioned_date:
+            cleanup_success = delete_calendar_event("primary", f"{mentioned_date.title()} at 12:00 PM")
 
     # Using re to detect complex rescheduling patterns for the Dishonesty Flag
     reschedule_pattern = r"(move|change|instead of|actually).*(appointment|time|slot)"
