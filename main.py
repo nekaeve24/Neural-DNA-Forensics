@@ -32,21 +32,19 @@ def audit_to_ndfe(status, emoji, risks, transcript):
             "timestamp": datetime.now(est_tz).isoformat(),
             "status": status,
             "emoji": emoji,
-            "risks": risks,
+            "jade_flags": risks,  # <--- THIS bridges your flags to the dashboard
             "transcript": transcript,
             "source": "JADE_ASSIST"
         }
-        # Dispatches data to the NDFE Brain on Port 8000
-        # verify=False is the specific fix for your [SSL: WRONG_VERSION_NUMBER] error
+        # Corrected URL to local Port 8000
         requests.post(
-            "http://whitney-untwinned-unfervidly.ngrok-free.dev/audit", 
+            "http://127.0.0.1:8000/audit", 
             json=payload, 
             timeout=0.5, 
             verify=False
         )
     except Exception as e:
         print(f"📡 BRIDGE ERROR: {e}")
-        pass
 
 def is_within_office_hours(dt):
     """Tier 1: Hardwired Base Availability Gate (EST Optimized)"""
@@ -141,18 +139,22 @@ async def relay_audit(request: Request):
         print(f"❌ RELAY ERROR: {e}")
         return {"status": "relay_failed", "error": str(e)}
 
-def save_to_vault(verdict, emoji, risks, transcript):
+def save_to_vault(verdict, emoji, risks, transcript, shared_id):
     conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
+        # 1. Save to the Sovereign Vault (Postgres)
         cur.execute(
             "INSERT INTO sovereign_vault (verdict, emoji, risks, transcript) VALUES (%s, %s, %s, %s)",
             (verdict, emoji, risks, transcript)
         )
         conn.commit()
         cur.close()
-        audit_to_ndfe(verdict, emoji, risks, transcript)
+        
+        # 2. Trigger the Bridge to Port 8000 (Monitor) with the flags and ID
+        audit_to_ndfe(verdict, emoji, risks, transcript, shared_id)
+
     except Exception as e:
         print(f"⚖️ VAULT ERROR: {e}")
     finally:
