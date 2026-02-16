@@ -494,7 +494,7 @@ import requests
 
 def send_to_ndfe_live(call_data):
     """Sends live call transcripts to the Forensic Monitor."""
-    url = "http://127.0.0.1:8000/process_audit" # Ensure this matches your route
+    url = "http://127.0.0.1:8000/audit" # Ensure this matches your route
     try:
         response = requests.post(url, json=call_data)
         if response.status_code == 200:
