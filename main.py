@@ -532,17 +532,23 @@ async def get_dashboard():
 
         rows = ""
         for log in logs:
-            # Reconstruct the ID number safely
-            nent_id_num = int(log['timestamp'].timestamp())
+            # 1. Capture the timestamp object and convert to string BEFORE the f-string
+            ts_obj = log['timestamp']
+            nent_id_num = int(ts_obj.timestamp())
+            ts_display = ts_obj.strftime('%Y-%m-%d %H:%M:%S')
             
-            # Build the row one by one
+            # 2. Extract verdict and color BEFORE the f-string
+            verdict_text = str(log['verdict'])
+            v_color = '#d32f2f' if 'FAIL' in verdict_text else '#2e7d32' if 'PASS' in verdict_text else '#333'
+            
+            # 3. Build the row with the pre-formatted strings
             rows += f"""
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="padding: 15px; text-align: center; font-size: 1.2em;">{log['emoji']}</td>
-                <td style="padding: 15px; font-weight: bold; color: {'#d32f2f' if 'FAIL' in log['verdict'] else '#2e7d32' if 'PASS' in log['verdict'] else '#333'};">{log['verdict']}</td>
+                <td style="padding: 15px; font-weight: bold; color: {v_color};">{verdict_text}</td>
                 <td style="padding: 15px;">
                     <div style="font-weight: bold; color: #2c3e50;">NENT-{nent_id_num} (8001 RELAY)</div>
-                    <div style="font-size: 0.85em; color: #666; font-family: monospace;">{log['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}</div>
+                    <div style="font-size: 0.85em; color: #666; font-family: monospace;">{ts_display}</div>
                 </td>
                 <td style="padding: 15px;">{' '.join([f'<span style="background:#f0f0f0; padding:2px 8px; border-radius:10px; margin-right:5px; font-size:0.85em;">{r}</span>' for r in log['risks']])}</td>
             </tr>
