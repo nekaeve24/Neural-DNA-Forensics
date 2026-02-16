@@ -426,9 +426,22 @@ async def audit_call(request: Request):
         else:
             action_log.append("⚠️ SELF_HEALING_FAILED: SLOT_NOT_FOUND")
 
-    # Version 4: Absolute Truth Guard
+    # --- Version 4: Absolute Truth Guard ---
+    # 1. Define the baseline for "Truth" (EST Optimized)
     est_now = datetime.now(timezone(timedelta(hours=-5)))
     tomorrow_truth = (est_now + timedelta(days=1)).strftime("%A, %B %d, %Y")
+    
+    # 2. Forensic Audit: If AI mentions "tomorrow" but provides the wrong date
+    if "tomorrow" in transcript_text and tomorrow_truth.lower() not in transcript_text:
+        action_log.append(f"🚩 DATE_HALLUCINATION: AI_SAID_WRONG_DATE")
+        
+        # 3. Guarded Actuation: Only attempt self-healing if a date was captured
+        if mentioned_date:
+            action_log.append(f"🧹 SELF_HEALING: CLEANING HALLUCINATED DATE {mentioned_date.title()}")
+            cleanup_success = delete_calendar_event("primary", f"{mentioned_date.title()} at 12:00 PM")
+            
+            if cleanup_success:
+                action_log.append("🧹 SELF_HEALING: HALLUCINATED_SLOT_REMOVED")
     
     # Forensic Flag: If Jade says tomorrow is anything OTHER than tomorrow_truth
     if "tomorrow" in transcript_text and tomorrow_truth.lower() not in transcript_text:
