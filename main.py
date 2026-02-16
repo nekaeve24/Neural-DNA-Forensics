@@ -25,10 +25,11 @@ def dispatch_audit(payload):
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-def audit_to_ndfe(status, emoji, risks, transcript):
+def audit_to_ndfe(status, emoji, risks, transcript, shared_id):
     try:
         est_tz = timezone(timedelta(hours=-5))
         payload = {
+            "shared_id": shared_id,
             "timestamp": datetime.now(est_tz).isoformat(),
             "status": status,
             "emoji": emoji,
@@ -36,13 +37,13 @@ def audit_to_ndfe(status, emoji, risks, transcript):
             "transcript": transcript,
             "source": "JADE_ASSIST"
         }
-        # Corrected URL to local Port 8000
         requests.post(
             "http://127.0.0.1:8000/audit", 
             json=payload, 
             timeout=0.5, 
             verify=False
         )
+
     except Exception as e:
         print(f"📡 BRIDGE ERROR: {e}")
 
