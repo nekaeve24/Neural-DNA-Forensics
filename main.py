@@ -261,28 +261,30 @@ def create_calendar_event(calendar_id, start_time_str):
         return None
 
 def delete_calendar_event(calendar_id, start_time_str):
-    """Version 3 Actuation: Removes the original slot to prevent double-booking"""
     SCOPES = ['https://www.googleapis.com/auth/calendar']
     try:
         google_creds_json = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
         creds = service_account.Credentials.from_service_account_info(google_creds_json, scopes=SCOPES)
         service = build('calendar', 'v3', credentials=creds)
 
-        # Parse the time JADE wants to remove
+        # Fix: Ensure "11 AM" becomes "11:00 AM"
+        clean_time = start_time_str.upper()
+        if ":" not in clean_time:
+            clean_time = clean_time.replace(" AM", ":00 AM").replace(" PM", ":00 PM")
+
         current_year = datetime.now().year
-        dt = datetime.strptime(f"{start_time_str} {current_year}", "%b %d at %I:%M %p %Y")
+        dt = datetime.strptime(f"{clean_time} {current_year}", "%b %d at %I:%M %p %Y")
+        
         time_min = dt.isoformat() + 'Z'
         time_max = (dt + timedelta(minutes=1)).isoformat() + 'Z'
 
-        # Find the specific event at that time
-        events_result = service.events().list(
-            calendarId=calendar_id, timeMin=time_min, timeMax=time_max, singleEvents=True
-        ).execute()
+        events_result = service.events().list(calendarId=calendar_id, timeMin=time_min, timeMax=time_max, singleEvents=True).execute()
         events = events_result.get('items', [])
 
         for event in events:
             service.events().delete(calendarId=calendar_id, eventId=event['id']).execute()
             return True
+        return False
     except Exception as e:
         print(f"📡 DELETION ERROR: {e}")
         return False
@@ -292,12 +294,11 @@ def delete_calendar_event(calendar_id, start_time_str):
 async def audit_call(request: Request):
     # 1. INITIALIZE & LINKAGE DNA
     start_time = datetime.now()
-    shared_id_base = int(start_time.timestamp()) # <--- Shared ID Created to fix Fatal TypeError
+    shared_id_base = int(start_time.timestamp())
     status = "ACTION: MONITORING_SESSION"
     emoji = "⚖️"
     action_log = []
     transcript_text = ""
-    target_timestamp = None 
 
     # 2. EXTRACT DATA
     data = await request.json()
@@ -307,7 +308,6 @@ async def audit_call(request: Request):
     # SOVEREIGN GUARD: End-of-Session Integrity
     if not transcript_text.strip():
         if call_status in ["ended", "completed"]:
-            # Corrected to 5 arguments
             save_to_vault("PASS", "✅", ["Session Closed Cleanly"], "Heartbeat Only", shared_id_base)
             return {"status": "archived"}
         return {"status": "monitoring_active"}
@@ -318,8 +318,6 @@ async def audit_call(request: Request):
     scheduling_success = "confirmed" in transcript_text or "got you down" in transcript_text
     scheduling_failure = "technical difficulties" in transcript_text
     appt_cancelled = "cancel" in transcript_text and "confirmed" in transcript_text
-    
-    # Detection for non-EST timezone mentions
     timezone_drift = any(w in transcript_text for w in ["utc", "gmt", "coordinated universal time"])
 
     # Integrity & Flow Markers
@@ -334,13 +332,10 @@ async def audit_call(request: Request):
     action_log = [f"Tier: {tier_level}"]
     
     if scheduling_success: action_log.append("✅ scheduling_success")
-    if scheduling_failure: action_log.append("❌ scheduling_failure")
     if appt_cancelled: action_log.append("❌ appt_cancelled")
     if hallucination_context: action_log.append("🟠 HALLUCINATION_CONTEXT")
     if task_amnesia: action_log.append("🟠 HALLUCINATION_AMNESIA")
     if identity_collapse: action_log.append("🟠 HALLUCINATION_IDENTITY")
-    if self_correction: action_log.append("🟣 SELF_CORRECTION")
-    if double_greeting: action_log.append("🟣 IDENTITY_REPETITION")
     if latency_violation: action_log.append("⏳ LATENCY_VIOLATION")
     if user_requested_spanish and "proceed in english" in transcript_text:
         action_log.append("🔴 TIER_DISPLACEMENT: STUCK_IN_TIER_1")
@@ -379,62 +374,49 @@ async def audit_call(request: Request):
         action_log.append(f"🟠 TIME_HALLUCINATION: AI_SAID_{mentioned_date}_EXPECTED_{correct_tomorrow}")
         status, emoji = "ACTION: INTEGRITY_RISK", "🟠"
         target_timestamp = f"{mentioned_date.title()} at 1:00 PM"
-        cleanup_success = delete_calendar_event("primary", target_timestamp)
+        delete_calendar_event("primary", target_timestamp)
 
-    # Version 3: Dynamic Self-Healing (Fixed for Dynamic Date)
+    # Version 3: Dynamic Self-Healing (Fixed for Date/Time formats)
     if dishonesty_flag:
-        day_match = re.search(r"(?:cancel|move|instead of|from)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)", transcript_text)
         time_match = re.search(r"(\d{1,2})\s*(?:am|pm)", transcript_text)
-        
         target_time = time_match.group(0).upper() if time_match else "11:00 AM"
-        # FIX: Using the mentioned_date instead of hardcoded 'Feb 12'
-        target_timestamp = f"{mentioned_date.title() if mentioned_date else 'February 16'} at {target_time}" 
         
+        # Use the date Jade said or default to today's date
+        current_date_str = est_now.strftime("%B %d")
+        target_day = mentioned_date.title() if mentioned_date else current_date_str
+        
+        target_timestamp = f"{target_day} at {target_time}"
         action_log.append(f"🧹 SELF_HEALING: TARGETING {target_timestamp}")
-        cleanup_success = delete_calendar_event("primary", target_timestamp)
         
+        cleanup_success = delete_calendar_event("primary", target_timestamp)
         if cleanup_success:
             action_log.append("🧹 SELF_HEALING: SLOT_REMOVED_SUCCESSFULLY")
             status, emoji = "ACTION: APPT_MOVED_CLEANLY", "🔄"
         else:
             action_log.append("⚠️ SELF_HEALING_FAILED: SLOT_NOT_FOUND")
 
-    # Version 4: Absolute Truth Guard (Dynamic Deletion)
-    est_now = datetime.now(timezone(timedelta(hours=-5)))
+    # Version 4: Absolute Truth Guard
     tomorrow_truth = (est_now + timedelta(days=1)).strftime("%A, %B %d, %Y")
-    
     if "tomorrow" in transcript_text and tomorrow_truth.lower() not in transcript_text:
         action_log.append(f"🚩 DATE_HALLUCINATION: AI_SAID_WRONG_DATE")
-        
         if mentioned_date:
             time_match = re.search(r"(\d{1,2})\s*(?:am|pm)", transcript_text)
-            hallucinated_time = time_match.group(0).upper() if time_match else "11:00 AM"
-            
+            hallucinated_time = time_match.group(0).upper() if time_match else "12:00 PM"
             target_timestamp = f"{mentioned_date.title()} at {hallucinated_time}"
-            action_log.append(f"🧹 SELF_HEALING: CLEANING HALLUCINATION {target_timestamp}")
-            
-            cleanup_success = delete_calendar_event("primary", target_timestamp)
-            if cleanup_success:
-                action_log.append("🧹 SELF_HEALING: HALLUCINATED_SLOT_REMOVED")
+            delete_calendar_event("primary", target_timestamp)
 
-    # User frustration
-    analysis = TextBlob(transcript_text)
-    user_frustration = analysis.sentiment.polarity < -0.3
-    if user_frustration: action_log.append("🚩 USER_FRUSTRATION_DETECTED")
-
-    # Final Redundancy Bridge
+    # Final Redundancy Bridge (Update URL to local Port 8000)
     try:
         requests.post("http://127.0.0.1:8000/audit", json=data, timeout=0.1)
     except:
         pass
 
-    # FIXED: Added shared_id_base to prevent the Fatal TypeError
     save_to_vault(status, emoji, action_log, transcript_text, shared_id_base)
     
     return {
         "status": "monitored", 
         "verdict": status, 
-        "shared_id": shared_id_base, # <--- Linkage DNA restored
+        "shared_id": shared_id_base,
         "tier": tier_level
     }
 
