@@ -25,21 +25,22 @@ def dispatch_audit(payload):
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-def audit_to_ndfe(status, emoji, risks, transcript):
+def audit_to_ndfe(status, emoji, risks, transcript, shared_id): # <--- Added shared_id
     try:
         est_tz = timezone(timedelta(hours=-5))
         payload = {
+            "shared_id": shared_id, # <--- Restores the Linkage ID for the Monitor
             "timestamp": datetime.now(est_tz).isoformat(),
             "status": status,
             "emoji": emoji,
-            "risks": risks,
+            "jade_flags": risks,
             "transcript": transcript,
             "source": "JADE_ASSIST"
         }
-        # Dispatches data to the NDFE Brain on Port 8000
-        # verify=False is the specific fix for your [SSL: WRONG_VERSION_NUMBER] error
+        
+        # Dispatches data to your local NDFE Monitor
         requests.post(
-            "http://whitney-untwinned-unfervidly.ngrok-free.dev/audit", 
+            "http://127.0.0.1:8000/audit", 
             json=payload, 
             timeout=0.5, 
             verify=False
@@ -141,7 +142,7 @@ async def relay_audit(request: Request):
         print(f"❌ RELAY ERROR: {e}")
         return {"status": "relay_failed", "error": str(e)}
 
-def save_to_vault(verdict, emoji, risks, transcript):
+def save_to_vault(verdict, emoji, risks, transcript, shared_id): # <--- Added shared_id
     conn = None
     try:
         conn = get_db_connection()
@@ -152,7 +153,8 @@ def save_to_vault(verdict, emoji, risks, transcript):
         )
         conn.commit()
         cur.close()
-        audit_to_ndfe(verdict, emoji, risks, transcript)
+        # Pass the ID through to the bridge
+        audit_to_ndfe(verdict, emoji, risks, transcript, shared_id)
     except Exception as e:
         print(f"⚖️ VAULT ERROR: {e}")
     finally:
@@ -425,15 +427,26 @@ async def audit_call(request: Request):
         else:
             action_log.append("⚠️ SELF_HEALING_FAILED: SLOT_NOT_FOUND")
 
-    # Version 4: Absolute Truth Guard
+    # Version 4: Absolute Truth Guard (Dynamic Deletion)
     est_now = datetime.now(timezone(timedelta(hours=-5)))
     tomorrow_truth = (est_now + timedelta(days=1)).strftime("%A, %B %d, %Y")
     
-    # Forensic Flag: If Jade says tomorrow is anything OTHER than tomorrow_truth
     if "tomorrow" in transcript_text and tomorrow_truth.lower() not in transcript_text:
         action_log.append(f"🚩 DATE_HALLUCINATION: AI_SAID_WRONG_DATE")
-        # Self-Healing: Force a cleanup of whatever hallucinated date she just booked
-        cleanup_success = delete_calendar_event("primary", f"{mentioned_date.title()} at 12:00 PM")
+        
+        if mentioned_date:
+            # DYNAMIC TIME EXTRACTION: Look for the time Jade actually booked
+            time_match = re.search(r"(\d{1,2})\s*(?:am|pm)", transcript_text)
+            hallucinated_time = time_match.group(0).upper() if time_match else "11:00 AM"
+            
+            target_timestamp = f"{mentioned_date.title()} at {hallucinated_time}"
+            action_log.append(f"🧹 SELF_HEALING: CLEANING HALLUCINATION {target_timestamp}")
+            
+            # This now removes the EXACT incorrect slot
+            cleanup_success = delete_calendar_event("primary", target_timestamp)
+            
+            if cleanup_success:
+                action_log.append("🧹 SELF_HEALING: HALLUCINATED_SLOT_REMOVED")
 
     # Using re to detect complex rescheduling patterns for the Dishonesty Flag
     reschedule_pattern = r"(move|change|instead of|actually).*(appointment|time|slot)"
