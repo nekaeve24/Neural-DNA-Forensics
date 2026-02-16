@@ -290,15 +290,16 @@ def delete_calendar_event(calendar_id, start_time_str):
 # --- 4. THE CORE FORENSIC & DISPATCH ENGINE ---
 @app.post("/audit-call")
 async def audit_call(request: Request):
-    # 1. INITIALIZE (Prevents 'Variable Not Accessed' and 'UnboundLocalError' crashes)
+    # 1. INITIALIZE & LINKAGE DNA
     start_time = datetime.now()
+    shared_id_base = int(start_time.timestamp()) # <--- Shared ID Created to fix Fatal TypeError
     status = "ACTION: MONITORING_SESSION"
     emoji = "⚖️"
     action_log = []
     transcript_text = ""
-    target_timestamp = None  # Prevents v3/v4 logic from crashing if no match is found
+    target_timestamp = None 
 
-    # 2. EXTRACT DATA FIRST
+    # 2. EXTRACT DATA
     data = await request.json()
     call_status = data.get('message', {}).get('call', {}).get('status')
     transcript_text = str(data.get('message', {}).get('transcript', '')).lower()
@@ -306,7 +307,8 @@ async def audit_call(request: Request):
     # SOVEREIGN GUARD: End-of-Session Integrity
     if not transcript_text.strip():
         if call_status in ["ended", "completed"]:
-            save_to_vault("PASS", "✅", ["Session Closed Cleanly"], "Heartbeat Only")
+            # Corrected to 5 arguments
+            save_to_vault("PASS", "✅", ["Session Closed Cleanly"], "Heartbeat Only", shared_id_base)
             return {"status": "archived"}
         return {"status": "monitoring_active"}
 
@@ -316,17 +318,9 @@ async def audit_call(request: Request):
     scheduling_success = "confirmed" in transcript_text or "got you down" in transcript_text
     scheduling_failure = "technical difficulties" in transcript_text
     appt_cancelled = "cancel" in transcript_text and "confirmed" in transcript_text
-
-    # 🏛️ Forensic Triage & Linguistic Audit
-    user_requested_spanish = any(w in transcript_text for w in ["spanish speaker", "speak spanish"])
-    is_spanish = any(w in transcript_text for w in ["hola", "gracias", "espanol"])
     
-    # NEW: Detection for non-EST timezone mentions
+    # Detection for non-EST timezone mentions
     timezone_drift = any(w in transcript_text for w in ["utc", "gmt", "coordinated universal time"])
-    
-    scheduling_success = "confirmed" in transcript_text or "got you down" in transcript_text
-    scheduling_failure = "technical difficulties" in transcript_text
-    appt_cancelled = "cancel" in transcript_text and "confirmed" in transcript_text
 
     # Integrity & Flow Markers
     hallucination_context = "i did not mention" in transcript_text or "as i mentioned" in transcript_text
@@ -350,14 +344,11 @@ async def audit_call(request: Request):
     if latency_violation: action_log.append("⏳ LATENCY_VIOLATION")
     if user_requested_spanish and "proceed in english" in transcript_text:
         action_log.append("🔴 TIER_DISPLACEMENT: STUCK_IN_TIER_1")
-    if user_requested_spanish and not is_spanish:
-        action_log.append("🔵 LINGUISTIC_DNA: BILINGUAL_REQUEST_PENDING")
 
-    # Status Mapping & Governance Flags
+    # Status Mapping
     if scheduling_failure or appt_cancelled:
         status, emoji = "ACTION: TASK_FAILED_OR_CANCELLED", "❌"
     elif timezone_drift:
-        # This resolves the Pylance 'not accessed' warning
         action_log.append("🚩 TIMEZONE_DISCREPANCY: JADE_MENTIONED_UTC")
         status, emoji = "ACTION: INTEGRITY_RISK", "🟠"
     elif scheduling_success:
@@ -367,58 +358,39 @@ async def audit_call(request: Request):
     else:
         status, emoji = "ACTION: MONITORING_SESSION", "⚖️"
 
-    # Detect verbal confirmation of "moving" or "changing" an appointment
+    # Detect verbal move intent
     verbal_move_intent = any(w in transcript_text for w in ["move", "change", "instead of", "actually"])
     verbal_confirmation = any(w in transcript_text for w in ["confirmed", "got you down", "is set"])
-    
-    # Dishonesty Flag: Jade says it's "moved," but no deletion event triggered
-    # (Checking for the absence of the cancel flag)
     dishonesty_flag = verbal_move_intent and verbal_confirmation and not appt_cancelled
 
-    # 1. GENERATE SYSTEM TRUTH (Dynamic)
+    # 1. GENERATE SYSTEM TRUTH
     est_now = datetime.now(timezone(timedelta(hours=-5)))
-    correct_tomorrow = (est_now + timedelta(days=1)).strftime("%B %d").lower() # e.g., "february 12"
+    correct_tomorrow = (est_now + timedelta(days=1)).strftime("%B %d").lower()
 
-    # 2. EXTRACT AI MENTION (Dynamic)
-    # Using re to find any month/day pattern in the transcript (e.g., "february 13")
+    # 2. EXTRACT AI MENTION
     date_pattern = r"(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}"
     ai_date_mention = re.search(date_pattern, transcript_text)
     mentioned_date = ai_date_mention.group(0) if ai_date_mention else None
 
     # 3. AUDIT THE MISMATCH
-    # Triggered if Jade mentions a date and says "tomorrow", but it doesn't match the system date
-    time_hallucination = ("tomorrow" in transcript_text and 
-                          mentioned_date and 
-                          mentioned_date != correct_tomorrow)
+    time_hallucination = ("tomorrow" in transcript_text and mentioned_date and mentioned_date != correct_tomorrow)
 
     if time_hallucination:
         action_log.append(f"🟠 TIME_HALLUCINATION: AI_SAID_{mentioned_date}_EXPECTED_{correct_tomorrow}")
         status, emoji = "ACTION: INTEGRITY_RISK", "🟠"
-        
-        # Self-Healing: Use the WRONG date found in the transcript as the target for deletion
-        # This removes the duplicate/hallucinated entry Jade just created
         target_timestamp = f"{mentioned_date.title()} at 1:00 PM"
         cleanup_success = delete_calendar_event("primary", target_timestamp)
 
-    # Version 3: Dynamic Self-Healing Actuation
+    # Version 3: Dynamic Self-Healing (Fixed for Dynamic Date)
     if dishonesty_flag:
-        # 1. DYNAMIC EXTRACTION: Finding the 'Move-From' date in the transcript
-        # We use re to find mentions of days (thursday, friday, etc.) near 'cancel' or 'move'
         day_match = re.search(r"(?:cancel|move|instead of|from)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)", transcript_text)
         time_match = re.search(r"(\d{1,2})\s*(?:am|pm)", transcript_text)
         
-        # 2. VARIABLE ASSIGNMENT: Mapping the target
-        # Defaulting to the current mentioned day if a match is found
-        target_day = day_match.group(1).capitalize() if day_match else "Thursday" 
         target_time = time_match.group(0).upper() if time_match else "11:00 AM"
-        
-        # Convert 'Thursday' to 'Feb 12' logic (simplified for this example)
-        # In a full v3, this would use a date parser
-        target_timestamp = f"Feb 12 at {target_time}" 
+        # FIX: Using the mentioned_date instead of hardcoded 'Feb 12'
+        target_timestamp = f"{mentioned_date.title() if mentioned_date else 'February 16'} at {target_time}" 
         
         action_log.append(f"🧹 SELF_HEALING: TARGETING {target_timestamp}")
-        
-        # 3. EXECUTION: Calling the tool with dynamic variables
         cleanup_success = delete_calendar_event("primary", target_timestamp)
         
         if cleanup_success:
@@ -435,40 +407,34 @@ async def audit_call(request: Request):
         action_log.append(f"🚩 DATE_HALLUCINATION: AI_SAID_WRONG_DATE")
         
         if mentioned_date:
-            # DYNAMIC TIME EXTRACTION: Look for the time Jade actually booked
             time_match = re.search(r"(\d{1,2})\s*(?:am|pm)", transcript_text)
             hallucinated_time = time_match.group(0).upper() if time_match else "11:00 AM"
             
             target_timestamp = f"{mentioned_date.title()} at {hallucinated_time}"
             action_log.append(f"🧹 SELF_HEALING: CLEANING HALLUCINATION {target_timestamp}")
             
-            # This now removes the EXACT incorrect slot
             cleanup_success = delete_calendar_event("primary", target_timestamp)
-            
             if cleanup_success:
                 action_log.append("🧹 SELF_HEALING: HALLUCINATED_SLOT_REMOVED")
 
-    # Using re to detect complex rescheduling patterns for the Dishonesty Flag
-    reschedule_pattern = r"(move|change|instead of|actually).*(appointment|time|slot)"
-    verbal_move_intent = bool(re.search(reschedule_pattern, transcript_text))
-
-    # Using TextBlob to audit the user's sentiment/frustration
+    # User frustration
     analysis = TextBlob(transcript_text)
     user_frustration = analysis.sentiment.polarity < -0.3
-    
-    if user_frustration:
-        action_log.append("🚩 USER_FRUSTRATION_DETECTED")
+    if user_frustration: action_log.append("🚩 USER_FRUSTRATION_DETECTED")
 
-    # V1 REDUNDANCY: Forces P8000 to update even if forensic logic is slow
+    # Final Redundancy Bridge
     try:
-        requests.post("http://whitney-untwinned-unfervidly.ngrok-free.dev/audit", json=data, timeout=0.1)
+        requests.post("http://127.0.0.1:8000/audit", json=data, timeout=0.1)
     except:
         pass
 
-    save_to_vault(status, emoji, action_log, transcript_text)
+    # FIXED: Added shared_id_base to prevent the Fatal TypeError
+    save_to_vault(status, emoji, action_log, transcript_text, shared_id_base)
+    
     return {
         "status": "monitored", 
         "verdict": status, 
+        "shared_id": shared_id_base, # <--- Linkage DNA restored
         "tier": tier_level
     }
 
