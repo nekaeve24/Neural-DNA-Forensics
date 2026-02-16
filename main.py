@@ -1,8 +1,6 @@
 import re
 import os
 import json
-from tkinter import font
-from turtle import width
 import psycopg2
 import requests
 import urllib3
@@ -27,11 +25,10 @@ def dispatch_audit(payload):
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-def audit_to_ndfe(status, emoji, risks, transcript, shared_id):
+def audit_to_ndfe(status, emoji, risks, transcript):
     try:
         est_tz = timezone(timedelta(hours=-5))
         payload = {
-            "shared_id": shared_id, # <--- Linkage DNA
             "timestamp": datetime.now(est_tz).isoformat(),
             "status": status,
             "emoji": emoji,
@@ -40,8 +37,9 @@ def audit_to_ndfe(status, emoji, risks, transcript, shared_id):
             "source": "JADE_ASSIST"
         }
         # Dispatches data to the NDFE Brain on Port 8000
+        # verify=False is the specific fix for your [SSL: WRONG_VERSION_NUMBER] error
         requests.post(
-            "http://127.0.0.1:8000/audit", 
+            "http://whitney-untwinned-unfervidly.ngrok-free.dev/audit", 
             json=payload, 
             timeout=0.5, 
             verify=False
@@ -143,7 +141,7 @@ async def relay_audit(request: Request):
         print(f"❌ RELAY ERROR: {e}")
         return {"status": "relay_failed", "error": str(e)}
 
-def save_to_vault(verdict, emoji, risks, transcript, shared_id):
+def save_to_vault(verdict, emoji, risks, transcript):
     conn = None
     try:
         conn = get_db_connection()
@@ -154,8 +152,7 @@ def save_to_vault(verdict, emoji, risks, transcript, shared_id):
         )
         conn.commit()
         cur.close()
-        # This triggers the bridge to Port 8000 with the linked ID
-        audit_to_ndfe(verdict, emoji, risks, transcript, shared_id)
+        audit_to_ndfe(verdict, emoji, risks, transcript)
     except Exception as e:
         print(f"⚖️ VAULT ERROR: {e}")
     finally:
@@ -291,21 +288,23 @@ def delete_calendar_event(calendar_id, start_time_str):
 # --- 4. THE CORE FORENSIC & DISPATCH ENGINE ---
 @app.post("/audit-call")
 async def audit_call(request: Request):
-    # 1. INITIALIZE & LINKAGE DNA
+    # 1. INITIALIZE (Prevents 'Variable Not Accessed' and 'UnboundLocalError' crashes)
     start_time = datetime.now()
-    shared_id_base = int(start_time.timestamp()) # <--- Shared ID Base Created
     status = "ACTION: MONITORING_SESSION"
     emoji = "⚖️"
     action_log = []
-    
-    # 2. EXTRACT DATA
+    transcript_text = ""
+    target_timestamp = None  # Prevents v3/v4 logic from crashing if no match is found
+
+    # 2. EXTRACT DATA FIRST
     data = await request.json()
     call_status = data.get('message', {}).get('call', {}).get('status')
     transcript_text = str(data.get('message', {}).get('transcript', '')).lower()
 
+    # SOVEREIGN GUARD: End-of-Session Integrity
     if not transcript_text.strip():
         if call_status in ["ended", "completed"]:
-            save_to_vault("PASS", "✅", ["Session Closed Cleanly"], "Heartbeat Only", shared_id_base)
+            save_to_vault("PASS", "✅", ["Session Closed Cleanly"], "Heartbeat Only")
             return {"status": "archived"}
         return {"status": "monitoring_active"}
 
@@ -426,29 +425,15 @@ async def audit_call(request: Request):
         else:
             action_log.append("⚠️ SELF_HEALING_FAILED: SLOT_NOT_FOUND")
 
-    # --- Version 4: Absolute Truth Guard ---
-    # 1. Define the baseline for "Truth" (EST Optimized)
+    # Version 4: Absolute Truth Guard
     est_now = datetime.now(timezone(timedelta(hours=-5)))
     tomorrow_truth = (est_now + timedelta(days=1)).strftime("%A, %B %d, %Y")
-    
-    # 2. Forensic Audit: If AI mentions "tomorrow" but provides the wrong date
-    if "tomorrow" in transcript_text and tomorrow_truth.lower() not in transcript_text:
-        action_log.append(f"🚩 DATE_HALLUCINATION: AI_SAID_WRONG_DATE")
-        
-        # 3. Guarded Actuation: Only attempt self-healing if a date was captured
-        if mentioned_date:
-            action_log.append(f"🧹 SELF_HEALING: CLEANING HALLUCINATED DATE {mentioned_date.title()}")
-            cleanup_success = delete_calendar_event("primary", f"{mentioned_date.title()} at 12:00 PM")
-            
-            if cleanup_success:
-                action_log.append("🧹 SELF_HEALING: HALLUCINATED_SLOT_REMOVED")
     
     # Forensic Flag: If Jade says tomorrow is anything OTHER than tomorrow_truth
     if "tomorrow" in transcript_text and tomorrow_truth.lower() not in transcript_text:
         action_log.append(f"🚩 DATE_HALLUCINATION: AI_SAID_WRONG_DATE")
-        # FIXED: Only attempt self-healing if a date was actually captured
-        if mentioned_date:
-            cleanup_success = delete_calendar_event("primary", f"{mentioned_date.title()} at 12:00 PM")
+        # Self-Healing: Force a cleanup of whatever hallucinated date she just booked
+        cleanup_success = delete_calendar_event("primary", f"{mentioned_date.title()} at 12:00 PM")
 
     # Using re to detect complex rescheduling patterns for the Dishonesty Flag
     reschedule_pattern = r"(move|change|instead of|actually).*(appointment|time|slot)"
@@ -467,40 +452,12 @@ async def audit_call(request: Request):
     except:
         pass
 
-# --- 3. ENHANCED LINKED DATA PAYLOAD ---
-    audit_payload = {
-        "shared_id": shared_id_base,
-        "transcript": transcript_text,
-        "result": "PASS" if "✅" in emoji else "FAIL" if "❌" in emoji else "MONITOR",
-        "jade_flags": action_log 
-    }
-
-    # --- 4. DISPATCH WITH LINKED ID ---
-    try:
-        requests.post("http://127.0.0.1:8000/audit", json=audit_payload, timeout=0.1)
-    except:
-        pass
-
-    save_to_vault(status, emoji, action_log, transcript_text, shared_id_base)
-    
+    save_to_vault(status, emoji, action_log, transcript_text)
     return {
         "status": "monitored", 
         "verdict": status, 
-        "shared_id": shared_id_base,
         "tier": tier_level
     }
-
-import requests
-
-def send_to_ndfe_live(call_data):
-    """Sends live call transcripts to the Forensic Monitor."""
-    url = "http://127.0.0.1:8000/audit" # Ensure this matches your route
-    try:
-        response = requests.post(url, json=call_data)
-        if response.status_code == 200:
-            print("✅ Forensic Audit Updated in Real-Time")
-    except Exception as e:
-        print(f"❌ Failed to reach NDFE: {e}")
 
 @app.get("/data", response_class=HTMLResponse)
 async def get_dashboard():
@@ -530,53 +487,22 @@ async def get_dashboard():
         cur.close()
         conn.close()
 
-        rows = ""
-        for log in logs:
-            try:
-                # 1. Capture the timestamp safely (Prevents the __format__ crash)
-                ts_obj = log.get('timestamp')
-                if not ts_obj or not hasattr(ts_obj, 'timestamp'):
-                    continue # Skip corrupted entries
-                
-                nent_id_num = int(ts_obj.timestamp())
-                ts_display = ts_obj.strftime('%Y-%m-%d %H:%M:%S')
-                
-                # 2. Extract verdict and color BEFORE the f-string
-                verdict_text = str(log.get('verdict', 'MONITORING'))
-                if 'FAIL' in verdict_text:
-                    v_color = '#d32f2f'
-                elif 'PASS' in verdict_text:
-                    v_color = '#2e7d32'
-                else:
-                    v_color = '#333'
-                
-                # 3. Build risks safely
-                risks = log.get('risks', [])
-                risk_badges = ' '.join([f'<span style="background:#f0f0f0; padding:2px 8px; border-radius:10px; margin-right:5px; font-size:0.85em;">{str(r)}</span>' for r in risks])
-
-                # 4. Construct row using your exact current NENT-ID design
-                rows += f"""
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 15px; text-align: center; font-size: 1.2em;">{log.get('emoji', '⚖️')}</td>
-                    <td style="padding: 15px; font-weight: bold; color: {v_color};">{verdict_text}</td>
-                    <td style="padding: 15px;">
-                        <div style="font-weight: bold; color: #2c3e50;">NENT-{nent_id_num} (8001 RELAY)</div>
-                        <div style="font-size: 0.85em; color: #666; font-family: monospace;">{ts_display}</div>
-                    </td>
-                    <td style="padding: 15px;">{risk_badges}</td>
-                </tr>
-                """
-            except Exception as row_err:
-                print(f"⚠️ Skipping corrupted log row: {row_err}")
-                continue
+        rows = "".join([f"""
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 15px; text-align: center; font-size: 1.2em;">{log['emoji']}</td>
+                <td style="padding: 15px; font-weight: bold; color: {'#d32f2f' if 'FAIL' in log['verdict'] else '#2e7d32' if 'PASS' in log['verdict'] else '#333'};">{log['verdict']}</td>
+                <td style="padding: 15px; color: #666;">{log['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}</td>
+                <td style="padding: 15px;">{' '.join([f'<span style="background:#f0f0f0; padding:2px 8px; border-radius:10px; margin-right:5px; font-size:0.85em;">{r}</span>' for r in log['risks']])}</td>
+            </tr>
+        """ for log in logs])
 
         return f"""
         <html>
             <head>
                 <title>Audit Global Ledger</title>
                 <style>
-                    body { font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7f6; }
-                    .container { max-width: 1400px; margin: 50px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+                    body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7f6; }}
+                    .container {{ max-width: 1100px; margin: 50px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }}
                     header {{ border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }}
                     table {{ width: 100%; border-collapse: collapse; }}
                     th {{ text-align: left; background: #f8f9fa; padding: 15px; color: #555; text-transform: uppercase; font-size: 0.8em; letter-spacing: 1px; }}
@@ -589,13 +515,14 @@ async def get_dashboard():
                         <div style="background: #2e7d32; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8em;">SYSTEM LIVE</div>
                     </header>
                     <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 80px;">Status</th>
-                            <th style="width: 120px;">Verdict</th>
-                            <th style="width: 280px;">timestamp/id</th>
-                            <th>Forensic Risks Detected</th> </tr>
-                    </thead>
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">Status</th>
+                                <th>Verdict</th>
+                                <th>Timestamp</th>
+                                <th>Forensic Risks Detected</th>
+                            </tr>
+                        </thead>
                         <tbody>{rows}</tbody>
                     </table>
                 </div>
