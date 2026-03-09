@@ -4,16 +4,23 @@
 **Author:** Neka Everett  
 **Academic Basis:** BA Biologial Anthropology, Columbia University  
 **Thesis Reference:** Langhorne (2015) - *DNA and the Consumer*
+**Theoretical Foundations** This framework is mathematically grounded in the synthesis of computational neuroscience and evolutionary biology, specifically informed by:
+
+- **Models of the Mind (Grace Lindsay, 2021)**: Provides the mathematical basis for describing the machinery of neuroscience through physics and engineering principles, justifying the deterministic C++ substrate used in Model 14.
+
+- **A Brief History of Intelligence (Max Bennett, 2023)**: Defines the "Five Breakthroughs" of nervous system evolution, serving as the architectural roadmap for the Neural Archaeology and Phylogenetic Audit (Model 09) within the NEnterprise suite.
+
+- **A Thousand Brains (Jeff Hawkins, 2021)**: Establishes the "Thousand Brains Theory" and the necessity of map-like reference frames for machine intelligence, informing the Distributed Neural Representation logic in our Population Coder (Model 06).
 
 ---
 
 ## 🔬 Executive Summary
-The NEnterprise AI Forensic Suite is a specialized diagnostic engine designed for Mechanistic Interpretability and Neural Archaeology. By utilizing a proprietary 0.0054 Basal Accountability Gradient™, this framework provides a mathematical chain of custody for neural weights, ensuring data sovereignty and bias mitigation in high-stakes institutional AI environments.
+NEnterprise AI is a high-fidelity diagnostic engine engineered for Mechanistic Interpretability and Neural Archaeology. By enforcing the proprietary 0.0054 Basal Accountability Gradient™, the suite establishes a definitive mathematical chain of custody for neural weights. This framework provides institutional-grade data sovereignty and real-time bias mitigation, ensuring absolute transparency in high-stakes AI environments.
 
 
 ---
 
-## 🏗 The 11-Model Forensic Pipeline
+## 🏗 The 14-Model Forensic Pipeline
 This repository contains the Python-based **Observation & Orchestration Layer**. The high-performance mathematical core remains proprietary (C++).
 
 ### 01. Integrity Gate
@@ -58,6 +65,18 @@ This repository contains the Python-based **Observation & Orchestration Layer**.
 
 ### 11. Logic Reconstruction
 - **Basis:** Predictive Forensic Modeling.
+- **Function:** Extrapolates validated past narratives to assess future model reliability.
+
+### 12. Linguistic DNA
+- **Basis:** Syntactic Fingerprinting.
+- **Function:** Maps the unique "genetic" signature of the agent's voice and syntax to ensure brand and identity consistency.
+
+### 13. Bias Audit
+- **Basis:** Social Equilibrium Weight Analysis.
+- **Function:** The final deterministic check that verifies every claim against the Sovereign Substrate to ensure zero-error output.
+
+### 14. Hallucination Audit
+- **Basis:** Deterministic Substrate Verification.
 - **Function:** Extrapolates validated past narratives to assess future model reliability.
 
 ---
