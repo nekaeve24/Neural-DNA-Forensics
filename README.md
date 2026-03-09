@@ -21,63 +21,63 @@ NEnterprise AI is a high-fidelity diagnostic engine engineered for Mechanistic I
 ---
 
 ## 🏗 The 14-Model Forensic Pipeline
-This repository contains the Python-based **Observation & Orchestration Layer**. The high-performance mathematical core remains proprietary (C++).
+This repository contains the Python-based **Observation & Orchestration Layer**. The high-performance mathematical core (Model 14 Substrate) remains proprietary (C++).
 
 ### 01. Integrity Gate
-- **Basis:** Welford's Algorithm for Online Variance.
+- **Basis:** Welford’s Algorithm (Online Variance).
 - **Function:** Establishes biological 'Homeostatic Baselines' to prevent systemic shock from volatile data inputs.
 
 ### 02. Forensic Chain
-- **Basis:** Mathematical Chain of Custody.
-- **Function:** Links every evolutionary step of the neural substrate into an immutable cryptographic sequence.
+- **Basis:** Backpropagation & Chain of Custody (MOTM Ch. 3).
+- **Function:** Addresses liability in data sharing by linking every evolutionary step of the neural substrate into an immutable sequence.
 
 ### 03. Attractor Safeguard
-- **Basis:** Dynamical Systems Stability.
-- **Function:** Identifies and secures 'Fixed-Point' attractors to prevent dead-end logic loops.
+- **Basis:** Hopfield Network & Dynamical Stability.
+- **Function:** Identifies and secures 'Fixed-Point' attractors as a sovereign memory vault to prevent dead-end logic loops.
 
 ### 04. Homeostatic Governor
-- **Basis:** Negative Feedback Loops.
-- **Function:** Regulatory layer that dampens extreme outputs to maintain systemic equilibrium.
+- **Basis:** Excitation & Inhibition (MOTM Ch. 5).
+- **Function:** Implements a "Veto" system over processing drives to maintain systemic equilibrium within legal bounds.
 
 ### 05. Steering Lineage
-- **Basis:** Directed Acyclic Graph (DAG) Traversal.
-- **Function:** Ensures model learning trajectory remains aligned with the NEnterprise Root Baseline.
+- **Basis:** Directed Acyclic Graph (ABHOI Breakthrough #1).
+- **Function:** Ensures the model learning trajectory remains aligned with the NEnterprise Root Baseline and resists commercial bias.
 
 ### 06. Population Coder
-- **Basis:** Distributed Neural Representation.
-- **Function:** Analyzes weight distribution across the neural population to prevent single-point bias.
+- **Basis:** Distributed Neural Representation (MOTM Ch. 7).
+- **Function:** Ensures systemic robustness through neural consensus; makes "Truth" recoverable even if individual nodes are corrupted.
 
 ### 07. Error Correction
-- **Basis:** Hebbian Learning Refinement.
-- **Function:** Real-time rectification of logic drift using the 0.0054 gradient.
+- **Basis:** Reinforcement Learning & RPE (MOTM Ch. 8).
+- **Function:** Real-time rectification of logic drift using the 0.0054 Basal Accountability Gradient™.
 
 ### 08. Proprietary Vault
-- **Basis:** Data Sovereignty Protocols.
-- **Function:** Isolation and encryption of critical forensic signatures.
+- **Basis:** Memory Persistence & Data Sovereignty (MOTM Ch. 4).
+- **Function:** Treats AI weights as "Neural DNA," isolating and encrypting forensic signatures to prevent reverse-engineering.
 
 ### 09. Phylogenetic Audit
-- **Basis:** Cladistics and Forensic Neural Archaeology.
-- **Function:** Traces the 'genetic' history of model weights to identify the origin of specific knowledge sets.
+- **Basis:** Cladistics & Associative Learning (ABHOI Ch. 4).
+- **Function:** Traces the 'genetic' history of model weights to distinguish between biological truth and maladaptive biases.
 
 ### 10. Model Synthesis
 - **Basis:** Cross-Domain Data Fusion.
-- **Function:** Consolidates validated forensic nodes into comprehensive institutional reports.
+- **Function:** Consolidates validated forensic nodes into comprehensive institutional reports for forensic evaluation.
 
 ### 11. Logic Reconstruction
 - **Basis:** Predictive Forensic Modeling.
-- **Function:** Extrapolates validated past narratives to assess future model reliability.
+- **Function:** Extrapolates validated past narratives to assess the future reliability of a neural sequence.
 
 ### 12. Linguistic DNA
-- **Basis:** Syntactic Fingerprinting.
-- **Function:** Maps the unique "genetic" signature of the agent's voice and syntax to ensure brand and identity consistency.
+- **Basis:** Syntactic Fingerprinting & Neural-Linguistic Auditing.
+- **Function:** Validates unique linguistic markers to ensure brand consistency and prevent "Linguistic Decay."
 
 ### 13. Bias Audit
-- **Basis:** Social Equilibrium Weight Analysis.
-- **Function:** A real-time mathematical screen that detects and mitigates systemic bias within the neural weights to ensure neutral output.
+- **Basis:** Social Equilibrium & Statistical Equity Monitoring.
+- **Function:** Detects systemic trends (e.g., NYC LL144 compliance) where dialect or syntax markers correlate with service discrepancies.
 
 ### 14. Hallucination Audit
-- **Basis:** Deterministic Substrate Verification.
-- **Function:** The final deterministic check that verifies every claim against the Sovereign Substrate to ensure zero-error output.
+- **Basis:** Phonetic-to-Logic Reconciliation & Deterministic Verification.
+- **Function:** The final deterministic check that identifies mismatches between raw audio DNA and logic triggers to ensure zero-error output.
 
 ---
 
