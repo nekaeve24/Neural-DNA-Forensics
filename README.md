@@ -79,6 +79,10 @@ This repository contains the Python-based **Observation & Orchestration Layer**.
 - **Basis:** Phonetic-to-Logic Reconciliation & Deterministic Verification.
 - **Function:** The final deterministic check that identifies mismatches between raw audio DNA and logic triggers to ensure zero-error output.
 
+### 15. Regulatory Model (in development)
+- **Basis:** Legal Provision Ingestion & Compliance Mapping.
+- **Function:** Acts as the plug-in layer for specific legislative mandates (e.g., NYC LL 144), cross-referencing neural outputs against active regulatory provisions.
+
 ---
 
 ## Neural DNA Forensics™
