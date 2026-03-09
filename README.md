@@ -103,7 +103,7 @@ Voice agents (deployed separately) send transcripts to the `/audit-call` endpoin
 ### 🛡️ Intellectual Property & Disclosure
 The NEnterprise AI Forensic Suite utilizes a dual-layer architecture to maximize transparency while protecting core trade secrets:
 
-* **Python Orchestration Layer (Public):** High-level logic and reporting models (01-11) are provided for institutional audit and integration verification.
+* **Python Orchestration Layer (Public):** High-level logic and reporting models (01-14) are provided for institutional audit and integration verification.
 * **C++ Neural DNA Core (Proprietary):** The high-performance mathematical engine responsible for raw substrate extraction remains offline. This core is available only via enterprise licensing.
 
 © 2026 NEnterprise, LLC. All Rights Reserved.
