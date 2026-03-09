@@ -73,11 +73,11 @@ This repository contains the Python-based **Observation & Orchestration Layer**.
 
 ### 13. Bias Audit
 - **Basis:** Social Equilibrium Weight Analysis.
-- **Function:** The final deterministic check that verifies every claim against the Sovereign Substrate to ensure zero-error output.
+- **Function:** A real-time mathematical screen that detects and mitigates systemic bias within the neural weights to ensure neutral output.
 
 ### 14. Hallucination Audit
 - **Basis:** Deterministic Substrate Verification.
-- **Function:** Extrapolates validated past narratives to assess future model reliability.
+- **Function:** The final deterministic check that verifies every claim against the Sovereign Substrate to ensure zero-error output.
 
 ---
 
